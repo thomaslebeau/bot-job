@@ -37,6 +37,10 @@ const redditCard = (title, url) => {
 
 const PREFIX = "!!";
 
+cron.schedule("*/9 * * * *", async () => {
+  console.log("ping");
+});
+
 client.on("ready", () => {
   console.log("I am ready!");
   const twitterChannel = client.channels.cache.get("1072196135608926360");
