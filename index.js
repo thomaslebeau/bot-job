@@ -30,7 +30,7 @@ const twitterCard = (text) => {
 const redditCard = (title, url) => {
   return new EmbedBuilder()
     .setColor(red_color)
-    .setTitle(title)
+    .setDescription(text)
     .setURL(url)
     .setTimestamp();
 };
