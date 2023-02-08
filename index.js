@@ -73,6 +73,9 @@ client.on("messageCreate", async (message) => {
   const command = input.shift();
 
   switch (command) {
+    case "ping":
+      message.channel.send("Pong!");
+      break;
     case "twitter":
       const tweets = await getTweets(research);
 
