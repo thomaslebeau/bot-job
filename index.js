@@ -31,6 +31,7 @@ const redditCard = (title, url) => {
   return new EmbedBuilder()
     .setColor(red_color)
     .setDescription(title)
+    .setTitle("reddit link")
     .setURL(url)
     .setTimestamp();
 };
