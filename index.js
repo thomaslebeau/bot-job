@@ -1,8 +1,17 @@
 import dotenv from "dotenv";
 import { Client, GatewayIntentBits, EmbedBuilder } from "discord.js";
 import cron from "node-cron";
+import http from http;
 import { getTweets } from "./getTweets.js";
 import { getReddit } from "./getReddit.js";
+
+http.createServer((req, res) => {
+res.writeHead(200, {
+    'Content-type': 'text/plain'
+});
+    res.write('Hey');
+    res.end();
+}).listen(4000);
 
 dotenv.config();
 
