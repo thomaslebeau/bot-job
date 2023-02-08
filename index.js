@@ -5,16 +5,6 @@ import http from "http";
 import { getTweets } from "./getTweets.js";
 import { getReddit } from "./getReddit.js";
 
-http
-  .createServer((req, res) => {
-    res.writeHead(200, {
-      "Content-type": "text/plain",
-    });
-    res.write("Hey");
-    res.end();
-  })
-  .listen(4000);
-
 dotenv.config();
 
 const research =
@@ -48,10 +38,6 @@ const redditCard = (title, url) => {
 };
 
 const PREFIX = "!!";
-
-cron.schedule("*/9 * * * *", async () => {
-  console.log("ping");
-});
 
 client.on("ready", () => {
   console.log("I am ready!");
