@@ -104,6 +104,4 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-console.log(typeof process.env.TOKEN);
-
-client.login(process.env.TOKEN);
+client.login(process.env.DTOKEN);
