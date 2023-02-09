@@ -54,8 +54,8 @@ client.on("ready", () => {
     });
   });
 
-  //Every 2hours
-  cron.schedule("0 */2 * * *", async () => {
+  //Every 4 hours
+  cron.schedule("0 */4 * * *", async () => {
     const reddits = await getReddit();
 
     reddits.map(({ title, url }) => {
