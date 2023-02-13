@@ -14,9 +14,9 @@ export const getTweets = async (research) => {
   if (jsTweets._realData.meta.result_count > 0) {
     return jsTweets._realData.data;
   }
-  return [
-    {
-      text: "no result on twitter during the last seven days",
-    },
-  ];
+  // return [
+  //   {
+  //     text: "no result on twitter during the last seven days",
+  //   },
+  // ];
 };

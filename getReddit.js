@@ -34,8 +34,10 @@ export const getReddit = async () => {
     ...starvingArtists.data.data.children,
   ];
 
-  return merged.map((submission) => ({
-    title: submission.data.title,
-    url: `https://www.reddit.com/${submission.data.permalink}`,
-  }));
+  return merged.map((submission) => {
+    return {
+      title: submission.data.title,
+      url: `https://www.reddit.com${submission.data.permalink}`,
+    };
+  });
 };
