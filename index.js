@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { Client, GatewayIntentBits, EmbedBuilder } from "discord.js";
+import fs from "fs/promises";
 import cron from "node-cron";
 import http from "http";
 import { getTweets } from "./getTweets.js";
@@ -47,22 +48,24 @@ client.on("ready", () => {
   cron.schedule("0 7 * * *", async () => {
     const tweets = await getTweets(research);
 
-    tweets.map(({ text }) => {
-      twitterChannel.send({
-        embeds: [twitterCard(text)],
+    tweets &&
+      tweets.map(({ text }) => {
+        twitterChannel.send({
+          embeds: [twitterCard(text)],
+        });
       });
-    });
   });
 
   //Every 4 hours
   cron.schedule("0 */4 * * *", async () => {
     const reddits = await getReddit();
 
-    reddits.map(({ title, url }) => {
-      redditChannel.send({
-        embeds: [redditCard(title, url)],
+    reddits &&
+      reddits.map(({ title, url }) => {
+        redditChannel.send({
+          embeds: [redditCard(title, url)],
+        });
       });
-    });
   });
 });
 
@@ -75,24 +78,24 @@ client.on("messageCreate", async (message) => {
       message.channel.send("Pong!");
       break;
     case "twitter":
-      const tweets = await getTweets(research);
+      // const tweets = await getTweets(research);
 
-      tweets.map(({ text }) => {
-        message.channel.send({
-          embeds: [twitterCard(text)],
-        });
-      });
+      // tweets.map(({ text }) => {
+      //   message.channel.send({
+      //     embeds: [twitterCard(text)],
+      //   });
+      // });
 
       break;
     case "reddit":
-      message.channel.send("start searching reddit....");
-      const reddits = await getReddit();
+      // message.channel.send("start searching reddit....");
+      // const reddits = await getReddit();
 
-      reddits.map(({ title, url }) => {
-        message.channel.send({
-          embeds: [redditCard(title, url)],
-        });
-      });
+      // reddreddits.map(({ title, url }) => {
+      //   message.channel.send({
+      //     embeds: [redditCard(title, url)],
+      //   });
+      // });
       break;
 
     default:
