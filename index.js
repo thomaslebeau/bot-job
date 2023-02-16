@@ -57,7 +57,7 @@ client.on("ready", () => {
   });
 
   //Every 4 hours
-  cron.schedule("0 */4 * * *", async () => {
+  cron.schedule("0 */2 * * *", async () => {
     const reddits = await getReddit();
 
     reddits &&
