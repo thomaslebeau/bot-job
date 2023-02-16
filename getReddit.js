@@ -45,32 +45,32 @@ export const getReddit = async () => {
     ...hireAnArtist2.data.data.children,
   ];
 
-  const result = merged.map((submission) => {
+  return merged.map((submission) => {
     return {
       title: submission.data.title,
       url: `https://www.reddit.com${submission.data.permalink}`,
     };
   });
 
-  const redditsSaved = await fs.readFile("./reddits.json", {
-    encoding: "utf8",
-  });
+  // const redditsSaved = await fs.readFile("./reddits.json", {
+  //   encoding: "utf8",
+  // });
 
-  const redditsSavedParsed = JSON.parse(redditsSaved);
+  // const redditsSavedParsed = JSON.parse(redditsSaved);
 
-  const resultFilter = (firstArray, secondArray) => {
-    return firstArray.filter(
-      (firstArrayItem) =>
-        !secondArray.some(
-          (secondArrayItem) => firstArrayItem.title === secondArrayItem.title
-        )
-    );
-  };
+  // const resultFilter = (firstArray, secondArray) => {
+  //   return firstArray.filter(
+  //     (firstArrayItem) =>
+  //       !secondArray.some(
+  //         (secondArrayItem) => firstArrayItem.title === secondArrayItem.title
+  //       )
+  //   );
+  // };
 
-  const myDifferences = resultFilter(redditsSavedParsed, result);
+  // const myDifferences = resultFilter(redditsSavedParsed, result);
 
-  if (myDifferences.length > 0) {
-    await fs.writeFile("./reddits.json", JSON.stringify(result));
-    return myDifferences;
-  }
+  // if (myDifferences.length > 0) {
+  //   await fs.writeFile("./reddits.json", JSON.stringify(result));
+  //   return myDifferences;
+  // }
 };
