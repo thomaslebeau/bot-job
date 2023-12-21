@@ -4,6 +4,7 @@ import { getToken } from "./tokenService.js";
 
 export const getTweets = async (research) => {
   const token = await getToken();
+  console.log(token);
   const client = new TwitterApi(token);
 
   const jsTweets = await client.v2.search({

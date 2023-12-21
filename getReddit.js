@@ -3,21 +3,21 @@ import axios from "axios";
 import fs from "fs/promises";
 
 export const getReddit = async () => {
-  const config = {
-    username: process.env.username,
-    password: process.env.password,
-    clientId: process.env.clientId,
-    clientSecret: process.env.clientSecret,
-  };
+  // const config = {
+  //   username: process.env.username,
+  //   password: process.env.password,
+  //   clientId: process.env.clientId,
+  //   clientSecret: process.env.clientSecret,
+  // };
 
-  console.log(config);
-  const r = new snoowrap({
-    userAgent: "Whatever",
-    clientId: config.clientId,
-    clientSecret: config.clientSecret,
-    username: config.username,
-    password: config.password,
-  });
+  // console.log(config);
+  // const r = new snoowrap({
+  //   userAgent: "Whatever",
+  //   clientId: config.clientId,
+  //   clientSecret: config.clientSecret,
+  //   username: config.username,
+  //   password: config.password,
+  // });
 
   const HungryArtists = await axios.get(
     "https://www.reddit.com/r/HungryArtists/search/.json?q=flair%3A%22Hiring%22&sort=new&restrict_sr=on&limit=5"
