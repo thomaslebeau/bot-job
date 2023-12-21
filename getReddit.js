@@ -19,9 +19,16 @@ export const getReddit = async () => {
   //   password: config.password,
   // });
 
+  const config = {
+    headers: {
+      "User-Agent": "job-reseach/1.0",
+    },
+  };
+
   try {
     const HungryArtists = await axios.get(
-      "https://www.reddit.com/r/HungryArtists/search/.json?q=flair%3A%22Hiring%22&sort=new&restrict_sr=on&limit=5"
+      "https://www.reddit.com/r/HungryArtists/search/.json?q=flair%3A%22Hiring%22&sort=new&restrict_sr=on&limit=5",
+      config
     );
 
     // const artcommissions = await axios.get(
