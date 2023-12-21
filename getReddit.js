@@ -20,58 +20,142 @@ export const getReddit = async () => {
       password: config.password,
     });
     // Fetch posts from the specified URL
-    const subreddit = "HungryArtists";
-    const queryParams = {
-      q: 'flair:"Hiring"',
+    const subredditHA = "HungryArtists";
+    const queryParamsHA = {
+      query: 'flair:"Hiring"',
+      sort: "new",
+      restrict_sr: "on",
+      limit: 5,
+    };
+    const subredditAC = "artcommissions";
+    const queryParamsAC = {
+      query: 'flair:"[Patron]"',
+      sort: "new",
+      restrict_sr: "on",
+      limit: 5,
+    };
+    const subredditSA = "starvingartists";
+    const queryParamsSA = {
+      query: "Request",
+      sort: "top",
+      restrict_sr: "on",
+      limit: 5,
+    };
+    const subredditHAA = "hireanartist";
+    const queryParamsHAA = {
+      query: 'flair:"[Hiring]-project"',
       sort: "new",
       restrict_sr: "on",
       limit: 5,
     };
 
-    r.getSubreddit(subreddit)
-      .search(queryParams)
+    const subredditHAA2 = "hireanartist";
+    const queryParamsHAA2 = {
+      query: 'flair:"[Hiring]-one-off"',
+      sort: "new",
+      restrict_sr: "on",
+      limit: 5,
+    };
+
+    const HungryArtists = await r
+      .getSubreddit(subredditHA)
+      .search(queryParamsHA)
       .then((posts) => {
         // Do something with the fetched posts
-        console.log(posts);
+        const data = posts.map((submission) => {
+          return {
+            title: submission.title,
+            url: `https://www.reddit.com${submission.permalink}`,
+          };
+        });
+        return [...data];
       })
       .catch((error) => {
         console.error(error);
       });
-    // const HungryArtists = await axios.get(
-    //   "https://www.reddit.com/r/HungryArtists/search/.json?q=flair%3A%22Hiring%22&sort=new&restrict_sr=on&limit=5",
-    //   config
-    // );
 
-    // const artcommissions = await axios.get(
-    //   "https://www.reddit.com/r/artcommissions/search/.json?q=flair%3A%22%5BPatron%5D%22&sort=new&restrict_sr=on&limit=5"
-    // );
+    const artcommissions = await r
+      .getSubreddit(subredditAC)
+      .search(queryParamsAC)
+      .then((posts) => {
+        // Do something with the fetched posts
+        const data = posts.map((submission) => {
+          return {
+            title: submission.title,
+            url: `https://www.reddit.com${submission.permalink}`,
+          };
+        });
+        return [...data];
+      })
+      .catch((error) => {
+        console.error(error);
+      });
 
-    // const starvingArtists = await axios.get(
-    //   "https://www.reddit.com/r/starvingartists/search.json?q=Request&restrict_sr=1&sr_nsfw=&include_over_18=1&sort=top&t=day"
-    // );
+    const starvingArtists = await r
+      .getSubreddit(subredditSA)
+      .search(queryParamsSA)
+      .then((posts) => {
+        // Do something with the fetched posts
+        const data = posts.map((submission) => {
+          return {
+            title: submission.title,
+            url: `https://www.reddit.com${submission.permalink}`,
+          };
+        });
+        return [...data];
+      })
+      .catch((error) => {
+        console.error(error);
+      });
 
-    // const hireAnArtist = await axios.get(
-    //   "https://www.reddit.com/r/hireanartist/search/.json?q=flair%3A%22%5BHiring%5D-project%22&&sort=new&restrict_sr=on&limit=5"
-    // );
+    const hireAnArtist = await r
+      .getSubreddit(subredditHAA)
+      .search(queryParamsHAA)
+      .then((posts) => {
+        // Do something with the fetched posts
+        const data = posts.map((submission) => {
+          return {
+            title: submission.title,
+            url: `https://www.reddit.com${submission.permalink}`,
+          };
+        });
+        return [...data];
+      })
+      .catch((error) => {
+        console.error(error);
+      });
 
-    // const hireAnArtist2 = await axios.get(
-    //   "https://www.reddit.com/r/hireanartist/search/.json?q=flair%3A%22%5BHiring%5D-one-off%22&&sort=new&restrict_sr=on&limit=5"
-    // );
+    const hireAnArtist2 = await r
+      .getSubreddit(subredditHAA2)
+      .search(queryParamsHAA2)
+      .then((posts) => {
+        // Do something with the fetched posts
+        const data = posts.map((submission) => {
+          return {
+            title: submission.title,
+            url: `https://www.reddit.com${submission.permalink}`,
+          };
+        });
+        return [...data];
+      })
+      .catch((error) => {
+        console.error(error);
+      });
 
-    // const merged = [
-    //   ...HungryArtists.data.data.children,
-    //   // ...artcommissions.data.data.children,
-    //   // ...starvingArtists.data.data.children,
-    //   // ...hireAnArtist.data.data.children,
-    //   // ...hireAnArtist2.data.data.children,
-    // ];
+    const merged = [
+      ...HungryArtists,
+      ...artcommissions,
+      ...starvingArtists,
+      ...hireAnArtist,
+      ...hireAnArtist2,
+    ];
 
-    // return merged.map((submission) => {
-    //   return {
-    //     title: submission.data.title,
-    //     url: `https://www.reddit.com${submission.data.permalink}`,
-    //   };
-    // });
+    return merged.map((submission) => {
+      return {
+        title: submission.title,
+        url: `https://www.reddit.com${submission.url}`,
+      };
+    });
   } catch (error) {
     console.log(error);
     return "error";

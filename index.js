@@ -106,8 +106,4 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-const data = await getReddit();
-
-console.log(data);
-
 client.login(process.env.DTOKEN);
