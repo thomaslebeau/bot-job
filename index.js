@@ -92,7 +92,7 @@ client.on("messageCreate", async (message) => {
       message.channel.send("start searching reddit....");
       const reddits = await getReddit();
 
-      reddreddits.map(({ title, url }) => {
+      reddits.map(({ title, url }) => {
         message.channel.send({
           embeds: [redditCard(title, url)],
         });
