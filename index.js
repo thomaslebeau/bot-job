@@ -92,11 +92,13 @@ client.on("messageCreate", async (message) => {
       message.channel.send("start searching reddit....");
       const reddits = await getReddit();
 
-      reddits.map(({ title, url }) => {
-        message.channel.send({
-          embeds: [redditCard(title, url)],
-        });
-      });
+      console.log(reddits);
+
+      // reddits.map(({ title, url }) => {
+      //   message.channel.send({
+      //     embeds: [redditCard(title, url)],
+      //   });
+      // });
       break;
 
     default:
