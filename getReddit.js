@@ -153,7 +153,7 @@ export const getReddit = async () => {
     return merged.map((submission) => {
       return {
         title: submission.title,
-        url: `https://www.reddit.com${submission.url}`,
+        url: submission.url,
       };
     });
   } catch (error) {
