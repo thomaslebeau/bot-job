@@ -9,6 +9,8 @@ export const getReddit = async () => {
     clientId: process.env.clientId,
     clientSecret: process.env.clientSecret,
   };
+
+  console.log(config);
   const r = new snoowrap({
     userAgent: "Whatever",
     clientId: config.clientId,
