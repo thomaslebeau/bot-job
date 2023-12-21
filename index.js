@@ -78,24 +78,25 @@ client.on("messageCreate", async (message) => {
       message.channel.send("Pong!");
       break;
     case "twitter":
-      // const tweets = await getTweets(research);
+      const tweets = await getTweets(research);
 
-      // tweets.map(({ text }) => {
-      //   message.channel.send({
-      //     embeds: [twitterCard(text)],
-      //   });
-      // });
+      tweets.map(({ text }) => {
+        message.channel.send("start searching twitter....");
+        message.channel.send({
+          embeds: [twitterCard(text)],
+        });
+      });
 
       break;
     case "reddit":
-      // message.channel.send("start searching reddit....");
-      // const reddits = await getReddit();
+      message.channel.send("start searching reddit....");
+      const reddits = await getReddit();
 
-      // reddreddits.map(({ title, url }) => {
-      //   message.channel.send({
-      //     embeds: [redditCard(title, url)],
-      //   });
-      // });
+      reddreddits.map(({ title, url }) => {
+        message.channel.send({
+          embeds: [redditCard(title, url)],
+        });
+      });
       break;
 
     default:
