@@ -94,11 +94,11 @@ client.on("messageCreate", async (message) => {
 
       console.log(reddits);
 
-      // reddits.map(({ title, url }) => {
-      //   message.channel.send({
-      //     embeds: [redditCard(title, url)],
-      //   });
-      // });
+      reddits.map(({ title, url }) => {
+        message.channel.send({
+          embeds: [redditCard(title, url)],
+        });
+      });
       break;
 
     default:
