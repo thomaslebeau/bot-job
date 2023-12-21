@@ -23,28 +23,28 @@ export const getReddit = async () => {
     "https://www.reddit.com/r/HungryArtists/search/.json?q=flair%3A%22Hiring%22&sort=new&restrict_sr=on&limit=5"
   );
 
-  const artcommissions = await axios.get(
-    "https://www.reddit.com/r/artcommissions/search/.json?q=flair%3A%22%5BPatron%5D%22&sort=new&restrict_sr=on&limit=5"
-  );
+  // const artcommissions = await axios.get(
+  //   "https://www.reddit.com/r/artcommissions/search/.json?q=flair%3A%22%5BPatron%5D%22&sort=new&restrict_sr=on&limit=5"
+  // );
 
-  const starvingArtists = await axios.get(
-    "https://www.reddit.com/r/starvingartists/search.json?q=Request&restrict_sr=1&sr_nsfw=&include_over_18=1&sort=top&t=day"
-  );
+  // const starvingArtists = await axios.get(
+  //   "https://www.reddit.com/r/starvingartists/search.json?q=Request&restrict_sr=1&sr_nsfw=&include_over_18=1&sort=top&t=day"
+  // );
 
-  const hireAnArtist = await axios.get(
-    "https://www.reddit.com/r/hireanartist/search/.json?q=flair%3A%22%5BHiring%5D-project%22&&sort=new&restrict_sr=on&limit=5"
-  );
+  // const hireAnArtist = await axios.get(
+  //   "https://www.reddit.com/r/hireanartist/search/.json?q=flair%3A%22%5BHiring%5D-project%22&&sort=new&restrict_sr=on&limit=5"
+  // );
 
-  const hireAnArtist2 = await axios.get(
-    "https://www.reddit.com/r/hireanartist/search/.json?q=flair%3A%22%5BHiring%5D-one-off%22&&sort=new&restrict_sr=on&limit=5"
-  );
+  // const hireAnArtist2 = await axios.get(
+  //   "https://www.reddit.com/r/hireanartist/search/.json?q=flair%3A%22%5BHiring%5D-one-off%22&&sort=new&restrict_sr=on&limit=5"
+  // );
 
   const merged = [
     ...HungryArtists.data.data.children,
-    ...artcommissions.data.data.children,
-    ...starvingArtists.data.data.children,
-    ...hireAnArtist.data.data.children,
-    ...hireAnArtist2.data.data.children,
+    // ...artcommissions.data.data.children,
+    // ...starvingArtists.data.data.children,
+    // ...hireAnArtist.data.data.children,
+    // ...hireAnArtist2.data.data.children,
   ];
 
   return merged.map((submission) => {
