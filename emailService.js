@@ -5,7 +5,7 @@ import { getSheetStats, getPriorityOpportunities } from "./googleSheets.js";
 let transporter;
 
 const initEmailService = () => {
-  transporter = nodemailer.createTransporter({
+  transporter = nodemailer.createTransport({
     service: "gmail", // ou autre service
     auth: {
       user: process.env.EMAIL_USER,
