@@ -252,7 +252,7 @@ const setupChannels = async (guild) => {
       await statusChannel.send({
         embeds: [
           statusCard(
-            "🚀 Bot Art Jobs démarré avec succès!\n\n**🐲 SPÉCIALITÉ: CREATURE DESIGN**\n\n**Surveillance Reddit active:**\n• HungryArtists\n• artcommissions\n• starvingartists\n• hireanartist\n\n**Styles ciblés:**\n• Semi-réaliste ✨\n• Stylisé 🎨\n• Concept art 📝\n\n**Nouvelles fonctionnalités:**\n📊 Google Sheets intégré (source unique)\n📧 Rapport matinal à 8h\n🚨 Alertes urgentes\n🔄 Gestion doublons automatique\n\n**Vérification:** Toutes les 2 heures ⏰",
+            "🚀 Bot Art Jobs démarré avec succès!\n\n**🐲 SPÉCIALITÉ: CREATURE DESIGN**\n\n**Surveillance Reddit active:**\n• HungryArtists\n• artcommissions\n• starvingartists\n• hireanartist\n\n**Styles ciblés:**\n• Semi-réaliste ✨\n• Stylisé 🎨\n• Concept art 📝\n\n**Nouvelles fonctionnalités:**\n📊 Google Sheets intégré (source unique)\n📧 Rapport matinal à 8h\n🚨 Alertes urgentes\n🔄 Gestion doublons automatique\n\n**Vérification:** Toutes les heures ⏰",
             "success"
           ),
         ],

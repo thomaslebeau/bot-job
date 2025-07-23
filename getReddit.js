@@ -352,6 +352,21 @@ export const getReddit = async () => {
               return false;
             }
 
+            // Récupérer la description complète du post
+            const description = submission.selftext || "";
+
+            if (submission.over_18) {
+              // Propriété 'over_18' est native à Snoowrap pour les posts NSFW
+              return false;
+            }
+
+            const hoursAgo = Math.floor(
+              (Date.now() - submission.created_utc * 1000) / (1000 * 60 * 60)
+            );
+            if (hoursAgo > 120) {
+              return false; // Ignorer si plus vieux que 5 jours
+            }
+
             // Garder seulement les vrais clients qui embauchent
             const isHiring =
               title.includes("hiring") ||
@@ -362,9 +377,6 @@ export const getReddit = async () => {
               flair.includes("patron");
 
             if (!isHiring) return false;
-
-            // Récupérer la description complète du post
-            const description = submission.selftext || "";
 
             // Scorer la pertinence avec titre ET description
             const relevanceScore = scoreJobRelevance(
