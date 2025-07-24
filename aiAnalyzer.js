@@ -6,7 +6,7 @@ const groq = new Groq({
 
 // Votre profil artistique - PERSONNALISEZ CES INFORMATIONS
 const ARTIST_PROFILE = {
-  name: process.env.ARTIST_NAME || "Votre Nom",
+  name: process.env.ARTIST_NAME || "Your Name",
   specialties: [
     "Creature Design",
     "Monster Design",
@@ -25,34 +25,25 @@ const ARTIST_PROFILE = {
     "Dark fantasy",
     "Painterly style",
   ],
+  // 🔧 EXPÉRIENCE PLUS GÉNÉRALE ET VRAIE
   experience: [
-    "5+ years in creature design",
-    "Specialized in D&D campaign artwork",
-    "Board game illustrations",
-    "TCG card art",
-    "Indie game concept art",
-    "Monster manual style illustrations",
-    "Character sheet designs",
+    "Professional digital artist specializing in creature design",
+    "Character design for fantasy settings",
+    "Monster and creature concepts",
+    "Semi-realistic and stylized art",
+    "Fantasy illustration work",
+    "Concept art development",
+    "TCG card game for Genesis Battle of Champions",
   ],
   portfolio: process.env.PORTFOLIO_URL || "https://votre-portfolio.com",
 
-  // Projets récents - À PERSONNALISER selon vos vrais projets
-  recentWork: [
-    "Dragon and wyvern designs for indie RPG",
-    "Complete monster manual for D&D homebrew campaign",
-    "Character portraits and sheets for Pathfinder",
-    "Creature concepts for fantasy board game",
-    "Demon and angel designs for TCG cards",
-    "Familiar and companion designs",
-  ],
-
-  // Spécialités techniques
-  deliverables: [
-    "Character/creature sheets with multiple views",
-    "Detailed anatomy and reference guides",
-    "Turnaround sheets (front, back, side views)",
-    "Color variations and alternate designs",
-    "High-resolution files for print and digital use",
+  // 🔧 PROJETS GÉNÉRIQUES (PAS DE FAUSSES RÉFÉRENCES SPÉCIFIQUES)
+  generalExperience: [
+    "Creature design and concept development",
+    "Character illustrations for fantasy settings",
+    "Monster and beast designs",
+    "Semi-realistic digital art",
+    "Stylized fantasy illustrations",
   ],
 };
 
@@ -64,60 +55,72 @@ const createAnalysisPrompt = (
   budget,
   relevanceScore
 ) => {
+  // Détecter la langue du post
+  const fullText = title + " " + description;
+  const isEnglish =
+    /^[\x00-\x7F]*$/.test(fullText) ||
+    fullText.toLowerCase().includes("looking for") ||
+    fullText.toLowerCase().includes("need") ||
+    fullText.toLowerCase().includes("hiring");
+
+  const language = isEnglish ? "English" : "French";
+
   // Analyser le type de projet
   const projectType = analyzeProjectType(title, description);
   const urgencyLevel =
     relevanceScore >= 18
-      ? "HAUTE PRIORITÉ"
+      ? "HIGH PRIORITY"
       : relevanceScore >= 15
-      ? "PRIORITÉ MOYENNE"
-      : "PRIORITÉ STANDARD";
+      ? "MEDIUM PRIORITY"
+      : "STANDARD PRIORITY";
 
-  return `Tu es un assistant expert pour ${
-    ARTIST_PROFILE.name
-  }, un artiste spécialisé en creature design et character design.
+  return `You are writing a professional response for ${ARTIST_PROFILE.name}, a creature design and character design specialist.
 
-PROFIL ARTISTE:
-Nom: ${ARTIST_PROFILE.name}
-Spécialités: ${ARTIST_PROFILE.specialties.join(", ")}
-Styles: ${ARTIST_PROFILE.styles.join(", ")}
+ARTIST PROFILE:
+Name: ${ARTIST_PROFILE.name}
+Specialties: Creature Design, Character Design, D&D/RPG Art, Semi-realistic/Stylized art
 Portfolio: ${ARTIST_PROFILE.portfolio}
+Experience: Professional digital artist specializing in fantasy creature and character design
 
-EXPERTISE TECHNIQUE:
-${ARTIST_PROFILE.deliverables.join(" • ")}
-
-PROJETS RÉCENTS:
-${ARTIST_PROFILE.recentWork.join(" • ")}
-
-ANNONCE À ANALYSER:
-Titre: "${title}"
+JOB POST TO ANALYZE:
+Title: "${title}"
 Description: "${description}"
 Subreddit: r/${subreddit}
 Budget: ${budget}
-Type détecté: ${projectType}
-Priorité: ${urgencyLevel}
+Project Type: ${projectType}
+Priority: ${urgencyLevel}
 
-MISSION:
-Génère une réponse personnalisée qui montre une compréhension précise du brief et met en valeur l'expertise pertinente.
+RESPONSE REQUIREMENTS:
+1. Language: Write ONLY in ${language}
+2. Length: Maximum 150 words
+3. Tone: Professional but friendly, confident without being pushy
+4. Structure: Brief intro → relevant experience → approach → portfolio link → simple closing
 
-STRUCTURE OBLIGATOIRE:
-1. Accroche personnalisée (montrer que vous avez LU et COMPRIS le brief spécifique)
-2. Expertise pertinente (mentionner 1-2 projets similaires concrets)
-3. Approche technique (comment vous allez procéder)
-4. Portfolio et contact
-5. Appel à l'action naturel
+CRITICAL RULES:
+- Do NOT invent fake projects or experiences
+- Do NOT use clichés like "thrilled", "perfect fit", "excited to work"
+- Do NOT be overly formal or robotic
+- ALWAYS include the portfolio link: ${ARTIST_PROFILE.portfolio}
+- Show you READ and UNDERSTOOD their specific brief
+- Be concise and direct
 
-RÈGLES:
-- Maximum 200 mots
-- Ton professionnel mais chaleureux
-- Éviter les clichés ("perfect fit", "I'd be thrilled")
-- Montrer de la personnalité
-- Inclure une référence spécifique au projet demandé
-- Terminer par une question ou proposition concrète
+FORBIDDEN PHRASES:
+- "I'm thrilled/excited"
+- "This is a perfect fit"
+- "I would be delighted"
+- "I am confident I can"
+- Any fake project references
 
-Génère UNIQUEMENT la réponse, sans explication.`;
+Example structure:
+"Hi! [Brief acknowledgment of their project]
+I specialize in [relevant specialty] with a [style] approach that could work well for [their specific need].
+My experience includes [real general experience areas].
+You can see my work at [portfolio]
+[Simple question or next step]
+Best regards"
+
+Generate ONLY the response, no explanation.`;
 };
-
 // Analyser le type de projet
 const analyzeProjectType = (title, description) => {
   const text = (title + " " + description).toLowerCase();
@@ -285,31 +288,36 @@ const generateFallbackResponse = (jobData) => {
     jobData.title,
     jobData.description || ""
   );
+  const experience = getRelevantExperienceExample(projectType);
 
-  const responses = [
-    `Hi! Your ${projectType.toLowerCase()} project looks really interesting. I specialize in ${specialty.toLowerCase()} with a semi-realistic, stylized approach that could work well for your vision.
+  // Détecter la langue
+  const fullText = jobData.title + " " + (jobData.description || "");
+  const isEnglish =
+    /^[\x00-\x7F]*$/.test(fullText) ||
+    fullText.toLowerCase().includes("looking for") ||
+    fullText.toLowerCase().includes("hiring");
 
-I've worked on similar projects including D&D campaigns, board game illustrations, and indie game concept art. My approach focuses on detailed anatomy and creative interpretation while maintaining the functionality you need.
+  if (isEnglish) {
+    return `Hi! Your ${projectType.toLowerCase()} project looks interesting. I specialize in ${specialty.toLowerCase()} with a semi-realistic, stylized approach.
 
-You can see examples of my work at ${ARTIST_PROFILE.portfolio}
+My experience includes ${experience} and I focus on creating designs that are both visually appealing and functional for your needs.
 
-I'm available to start and would love to discuss your specific requirements. What's your timeline looking like?
+You can see my work at ${ARTIST_PROFILE.portfolio}
 
-Best regards`,
+Would love to discuss your vision further. What's your timeline looking like?
 
-    `Hello! I noticed your ${projectType.toLowerCase()} post and it caught my attention. ${specialty} is one of my main specialties, and I work in a semi-realistic style that balances detail with stylized appeal.
+Best regards`;
+  } else {
+    return `Bonjour ! Votre projet de ${projectType.toLowerCase()} m'intéresse. Je me spécialise en ${specialty.toLowerCase()} avec une approche semi-réaliste et stylisée.
 
-Recent projects include creature designs for RPGs, character sheets for D&D campaigns, and concept art for board games. I focus on creating designs that are both visually striking and functional for your needs.
+Mon expérience inclut ${experience} et je me concentre sur la création de designs visuellement attrayants et fonctionnels.
 
-Check out my portfolio: ${ARTIST_PROFILE.portfolio}
+Vous pouvez voir mon travail sur ${ARTIST_PROFILE.portfolio}
 
-I'd be happy to discuss your vision and provide some initial concepts. Feel free to reach out if you'd like to chat more about the project!
+J'aimerais discuter de votre vision. Quel est votre calendrier ?
 
-Cheers`,
-  ];
-
-  // Choisir une réponse aléatoire pour varier
-  return responses[Math.floor(Math.random() * responses.length)];
+Cordialement`;
+  }
 };
 
 // Analyser plusieurs jobs en lot
@@ -388,6 +396,18 @@ export const testGroqConnection = async () => {
 
     return false;
   }
+};
+
+const getRelevantExperienceExample = (projectType) => {
+  const experienceMap = {
+    "Creature Design": "creature and monster design work",
+    "Character Design": "character design and illustration",
+    "D&D/RPG Commission": "fantasy character and creature art",
+    "Game Art Commission": "game art and character design",
+    "Fantasy Illustration": "fantasy illustration and concept art",
+  };
+
+  return experienceMap[projectType] || "digital art and character design";
 };
 
 // Variables de tracking en mémoire
