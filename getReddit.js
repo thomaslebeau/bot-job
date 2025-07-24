@@ -234,9 +234,15 @@ const scoreJobRelevance = (title, description = "") => {
 const adjustScoreForTimingAndCompetition = (
   baseScore,
   hoursAgo,
-  numComments
+  numComments,
+  canComment = true // 🆕 NOUVEAU PARAMÈTRE
 ) => {
   let adjustedScore = baseScore;
+
+  // 🆕 MALUS SÉVÈRE SI COMMENTAIRES FERMÉS
+  if (!canComment) {
+    adjustedScore -= 20; // Gros malus car inutile
+  }
 
   // Bonus pour fraîcheur (posts récents)
   if (hoursAgo <= 1) {
@@ -260,6 +266,250 @@ const adjustScoreForTimingAndCompetition = (
   }
 
   return adjustedScore;
+};
+
+// 🆕 FONCTION POUR DÉTECTER LES "FOR HIRE" DÉGUISÉS
+const isForHirePost = (title, description, flair) => {
+  const titleLower = title.toLowerCase();
+  const descLower = (description || "").toLowerCase();
+  const flairLower = (flair || "").toLowerCase();
+  const fullText = titleLower + " " + descLower + " " + flairLower;
+
+  // 1. DÉTECTION EXPLICITE "FOR HIRE"
+  const explicitForHire = [
+    "for hire",
+    "forhire",
+    "available for work",
+    "taking commissions",
+    "commissions open",
+    "open for commissions",
+    "accepting commissions",
+  ];
+
+  for (const phrase of explicitForHire) {
+    if (fullText.includes(phrase)) {
+      console.log(`🚫 For Hire explicite détecté: "${phrase}"`);
+      return true;
+    }
+  }
+
+  // 2. STRUCTURE "JE PROPOSE MES SERVICES"
+  const selfPromotion = [
+    "i draw",
+    "i create",
+    "i make",
+    "i design",
+    "i illustrate",
+    "i paint",
+    "i do",
+    "i offer",
+    "i provide",
+    "my art",
+    "my style",
+    "my portfolio",
+    "check out my",
+    "here's my",
+  ];
+
+  // 3. APPELS À L'ACTION
+  const callsToAction = [
+    "dm me",
+    "message me",
+    "contact me",
+    "pm me",
+    "reach out",
+    "hit me up",
+    "send me a message",
+    "feel free to contact",
+    "shoot me a message",
+  ];
+
+  // 4. SIGNAUX COMMERCIAUX
+  const commercialSignals = [
+    "commissions open",
+    "slots available",
+    "slots open",
+    "taking orders",
+    "booking now",
+    "available now",
+    "queue open",
+    "prices in",
+    "starting at $",
+    "rates start",
+    "portfolio in bio",
+    "link in bio",
+    "more examples",
+  ];
+
+  // SCORING DES SIGNAUX FOR HIRE
+  let forHireScore = 0;
+
+  // Vérifier auto-promotion
+  const hasAutoPromo = selfPromotion.some((phrase) =>
+    titleLower.includes(phrase)
+  );
+  if (hasAutoPromo) forHireScore += 3;
+
+  // Vérifier appels à l'action
+  const hasCallToAction = callsToAction.some((phrase) =>
+    fullText.includes(phrase)
+  );
+  if (hasCallToAction) forHireScore += 2;
+
+  // Vérifier signaux commerciaux
+  const hasCommercialSignal = commercialSignals.some((phrase) =>
+    fullText.includes(phrase)
+  );
+  if (hasCommercialSignal) forHireScore += 2;
+
+  // 5. PATTERNS SPÉCIFIQUES
+  // Pattern "I do X" suivi d'un appel à l'action
+  if (titleLower.match(/^i (draw|create|make|design|do)/) && hasCallToAction) {
+    forHireScore += 3;
+  }
+
+  // Pattern émojis + appel à l'action
+  if (title.includes("🎨") && hasCallToAction) {
+    forHireScore += 2;
+  }
+
+  // Absence de mots-clés "client cherche artiste"
+  const clientKeywords = [
+    "looking for",
+    "need",
+    "seeking",
+    "hiring",
+    "wanted",
+    "commission",
+    "project",
+    "help with",
+  ];
+
+  const hasClientKeywords = clientKeywords.some((phrase) =>
+    titleLower.includes(phrase)
+  );
+  if (!hasClientKeywords && forHireScore > 0) {
+    forHireScore += 1;
+  }
+
+  // DÉCISION FINALE
+  if (forHireScore >= 4) {
+    console.log(
+      `🚫 For Hire détecté (score: ${forHireScore}): "${title.substring(
+        0,
+        60
+      )}..."`
+    );
+    return true;
+  }
+
+  return false;
+};
+
+// 🆕 FONCTION POUR DÉTECTER LES VRAIS CLIENTS QUI CHERCHENT DES ARTISTES
+const isValidHiringPost = (title, description, flair) => {
+  const titleLower = title.toLowerCase();
+  const descLower = (description || "").toLowerCase();
+  const fullText = titleLower + " " + descLower;
+
+  // SIGNAUX POSITIFS (Client cherche artiste)
+  const hiringSignals = [
+    "looking for",
+    "need",
+    "seeking",
+    "hiring",
+    "wanted",
+    "in search of",
+    "require",
+    "help with",
+    "commission",
+    "project for",
+    "artist needed",
+    "anyone available",
+    "can someone",
+    "would like to hire",
+  ];
+
+  // CONTEXTE CLIENT
+  const clientContext = [
+    "my project",
+    "our project",
+    "my game",
+    "our game",
+    "my book",
+    "my character",
+    "my story",
+    "my campaign",
+    "for my",
+    "for our",
+    "client needs",
+    "budget of",
+    "willing to pay",
+    "can pay",
+  ];
+
+  // STRUCTURES DE BRIEF
+  const briefStructures = [
+    "description:",
+    "what i need:",
+    "requirements:",
+    "project details:",
+    "looking for someone who",
+    "need someone to",
+  ];
+
+  let hiringScore = 0;
+
+  // Vérifier signaux d'embauche
+  if (hiringSignals.some((signal) => fullText.includes(signal))) {
+    hiringScore += 3;
+  }
+
+  // Vérifier contexte client
+  if (clientContext.some((context) => fullText.includes(context))) {
+    hiringScore += 2;
+  }
+
+  // Vérifier structure de brief
+  if (briefStructures.some((structure) => fullText.includes(structure))) {
+    hiringScore += 2;
+  }
+
+  // Bonus pour flair approprié
+  if (flair && (flair.includes("hiring") || flair.includes("patron"))) {
+    hiringScore += 2;
+  }
+
+  return hiringScore >= 3;
+};
+
+// 🆕 FONCTION POUR VÉRIFIER SI LES COMMENTAIRES SONT DISPONIBLES
+const checkCommentAvailability = (submission) => {
+  const now = Date.now();
+  const postAge = now - submission.created_utc * 1000;
+  const ageInHours = postAge / (1000 * 60 * 60);
+  const ageInMonths = postAge / (1000 * 60 * 60 * 24 * 30);
+
+  return {
+    canComment:
+      !submission.locked &&
+      !submission.archived &&
+      !submission.removed &&
+      ageInMonths < 6,
+    locked: submission.locked,
+    archived: submission.archived,
+    removed: submission.removed,
+    tooOld: ageInMonths > 6,
+    ageInHours: Math.floor(ageInHours),
+    status: getCommentStatus(submission, ageInMonths),
+  };
+};
+
+const getCommentStatus = (submission, ageInMonths) => {
+  if (submission.removed) return "SUPPRIMÉ";
+  if (submission.locked) return "VERROUILLÉ";
+  if (submission.archived || ageInMonths > 6) return "ARCHIVÉ";
+  return "OUVERT";
 };
 
 export const getReddit = async () => {
@@ -342,21 +592,37 @@ export const getReddit = async () => {
 
         const jobs = posts
           .filter((submission) => {
-            const title = submission.title.toLowerCase();
-            const flair = submission.link_flair_text
-              ? submission.link_flair_text.toLowerCase()
-              : "";
+            const title = submission.title;
+            const description = submission.selftext || "";
+            const flair = submission.link_flair_text || "";
 
-            // Exclure explicitement les "For Hire"
-            if (title.includes("for hire") || flair.includes("for hire")) {
+            // 🆕 NOUVEAU FILTRE RENFORCÉ
+            // 1. Éliminer les For Hire déguisés
+            if (isForHirePost(title, description, flair)) {
               return false;
             }
 
-            // Récupérer la description complète du post
-            const description = submission.selftext || "";
+            // 2. Garder seulement les vrais posts d'embauche
+            if (!isValidHiringPost(title, description, flair)) {
+              console.log(
+                `⏭️ Pas un post d'embauche: "${title.substring(0, 50)}..."`
+              );
+              return false;
+            }
 
+            // 3. Vérifier les commentaires ouverts
+            const commentStatus = checkCommentAvailability(submission);
+            if (!commentStatus.canComment) {
+              console.log(
+                `⏭️ Commentaires fermés (${
+                  commentStatus.status
+                }): ${title.substring(0, 50)}...`
+              );
+              return false;
+            }
+
+            // 4. Filtres de base existants
             if (submission.over_18) {
-              // Propriété 'over_18' est native à Snoowrap pour les posts NSFW
               return false;
             }
 
@@ -367,25 +633,19 @@ export const getReddit = async () => {
               return false; // Ignorer si plus vieux que 5 jours
             }
 
-            // Garder seulement les vrais clients qui embauchent
-            const isHiring =
-              title.includes("hiring") ||
-              title.includes("looking for") ||
-              title.includes("need") ||
-              title.includes("commission") ||
-              flair.includes("hiring") ||
-              flair.includes("patron");
+            // 5. Vérifier la pertinence
+            const relevanceScore = scoreJobRelevance(title, description);
+            if (relevanceScore <= 0) {
+              console.log(
+                `⏭️ Score trop bas (${relevanceScore}): ${title.substring(
+                  0,
+                  50
+                )}...`
+              );
+              return false;
+            }
 
-            if (!isHiring) return false;
-
-            // Scorer la pertinence avec titre ET description
-            const relevanceScore = scoreJobRelevance(
-              submission.title,
-              description
-            );
-
-            // Garder seulement les jobs avec un score positif (pertinents)
-            return relevanceScore > 0;
+            return true;
           })
           .map((submission) => {
             const description = submission.selftext || "";
@@ -397,11 +657,15 @@ export const getReddit = async () => {
               (Date.now() - submission.created_utc * 1000) / (1000 * 60 * 60)
             );
 
+            // 🆕 AJOUTER LES INFOS DE COMMENTAIRES
+            const commentInfo = checkCommentAvailability(submission);
+
             // Ajuster le score avec timing et concurrence
             const finalScore = adjustScoreForTimingAndCompetition(
               baseRelevanceScore,
               hoursAgo,
-              submission.num_comments
+              submission.num_comments,
+              commentInfo.canComment // 🆕 NOUVEAU PARAMÈTRE
             );
 
             return {
@@ -414,10 +678,16 @@ export const getReddit = async () => {
               description: description,
               relevanceScore: finalScore, // Score final ajusté
               baseScore: baseRelevanceScore, // Score de base pour référence
-              // Nouvelles données ajoutées
               numComments: submission.num_comments,
-              createdDate: new Date(submission.created_utc * 1000), // Conversion timestamp
+              createdDate: new Date(submission.created_utc * 1000),
               hoursAgo: hoursAgo,
+
+              // 🆕 NOUVELLES DONNÉES COMMENTAIRES
+              commentStatus: commentInfo.status,
+              canComment: commentInfo.canComment,
+              isLocked: commentInfo.locked,
+              isArchived: commentInfo.archived,
+              isRemoved: commentInfo.removed,
             };
           });
 
@@ -459,6 +729,12 @@ export const getReddit = async () => {
           numComments: job.numComments,
           createdDate: job.createdDate,
           hoursAgo: job.hoursAgo,
+          // 🆕 NOUVELLES PROPRIÉTÉS
+          commentStatus: job.commentStatus,
+          canComment: job.canComment,
+          isLocked: job.isLocked,
+          isArchived: job.isArchived,
+          isRemoved: job.isRemoved,
         });
       }
     }
@@ -551,6 +827,10 @@ export const getRedditForced = async () => {
             description
           );
 
+          const hoursAgo = Math.floor(
+            (Date.now() - submission.created_utc * 1000) / (1000 * 60 * 60)
+          );
+
           return {
             title: submission.title,
             url: `https://www.reddit.com${submission.permalink}`,
@@ -562,9 +842,7 @@ export const getRedditForced = async () => {
             relevanceScore: relevanceScore,
             numComments: submission.num_comments,
             createdDate: new Date(submission.created_utc * 1000),
-            hoursAgo: Math.floor(
-              (Date.now() - submission.created_utc * 1000) / (1000 * 60 * 60)
-            ),
+            hoursAgo: hoursAgo,
           };
         });
 
@@ -592,3 +870,6 @@ export const getRedditForced = async () => {
     return "error";
   }
 };
+
+// 🆕 EXPORT DES NOUVELLES FONCTIONS POUR DEBUGGING
+export { isForHirePost, isValidHiringPost, checkCommentAvailability };
