@@ -795,16 +795,82 @@ client.on("messageCreate", async (message) => {
       break;
 
     case "ai-stats":
-      message.channel.send("📊 Récupération des stats IA...");
-      const stats = getGroqUsageStats();
-      message.channel.send(
-        `**📊 Statistiques Groq:**\n` +
-          `• Requêtes totales: ${stats.totalRequests}\n` +
-          `• Tokens consommés: ${stats.totalTokens}\n` +
-          `• Temps de réponse moyen: ${stats.averageResponseTime}ms\n` +
-          `• Taux de succès: ${stats.successRate}%\n` +
-          `• Coût estimé: $${stats.estimatedCost} (Groq = Gratuit! 🎉)`
-      );
+      message.channel.send("📊 Récupération des statistiques Groq...");
+
+      try {
+        const stats = getGroqUsageStats();
+
+        const statsEmbed = new EmbedBuilder()
+          .setColor(blue_color)
+          .setTitle("📊 Statistiques Groq IA")
+          .setDescription(
+            `**🔢 Utilisation Globale:**\n` +
+              `• Total requêtes: ${stats.totalRequests}\n` +
+              `• Succès: ${stats.successfulRequests} (${stats.successRate}%)\n` +
+              `• Échecs: ${stats.failedRequests}\n\n` +
+              `**🪙 Tokens:**\n` +
+              `• Total consommé: ${stats.totalTokens.toLocaleString()}\n` +
+              `• Moyenne/requête: ${stats.averageTokensPerRequest}\n` +
+              `• Vitesse: ${stats.tokensPerMinute}/min\n\n` +
+              `**⚡ Performance:**\n` +
+              `• Temps moyen: ${stats.averageResponseTime}ms\n` +
+              `• Uptime: ${stats.uptimeHours}h\n\n` +
+              `**📅 Aujourd'hui (${stats.today.date}):**\n` +
+              `• Requêtes: ${stats.today.requests}\n` +
+              `• Tokens: ${stats.today.tokens}\n` +
+              `• Succès: ${stats.today.successes}/${stats.today.requests} (${stats.today.successRate}%)\n\n` +
+              `**🚦 Limites Groq:**\n` +
+              `• Limite: 6000 tokens/min\n` +
+              `• Utilisation: ${stats.tokensPerMinute}/min\n` +
+              `• Disponible: ~${stats.groqLimits.remainingEstimate} tokens/min\n` +
+              `${
+                stats.groqLimits.isNearLimit
+                  ? "⚠️ **Proche de la limite !**"
+                  : "✅ **Marge confortable**"
+              }\n\n` +
+              `**💰 Coût:** $0.00 (Groq = Gratuit! 🎉)`
+          )
+          .setTimestamp()
+          .setFooter({
+            text: "Stats en temps réel • Se remet à zéro au redémarrage",
+          });
+
+        // Ajouter les erreurs si il y en a
+        if (Object.keys(stats.errorTypes).length > 0) {
+          const errorsList = Object.entries(stats.errorTypes)
+            .map(([error, count]) => `• ${error}: ${count}x`)
+            .join("\n");
+          statsEmbed.addFields({
+            name: "❌ Erreurs",
+            value: errorsList,
+            inline: false,
+          });
+        }
+
+        message.channel.send({ embeds: [statsEmbed] });
+      } catch (error) {
+        message.channel.send(`❌ Erreur récupération stats: ${error.message}`);
+      }
+      break;
+
+    case "ai-reset-stats":
+      message.channel.send("🔄 Réinitialisation des statistiques Groq...");
+      try {
+        resetGroqStats();
+        message.channel.send("✅ Statistiques réinitialisées !");
+      } catch (error) {
+        message.channel.send(`❌ Erreur reset: ${error.message}`);
+      }
+      break;
+
+    case "ai-daily":
+      message.channel.send("📅 Rapport quotidien...");
+      try {
+        const report = getDailyStatsReport();
+        message.channel.send(report);
+      } catch (error) {
+        message.channel.send(`❌ Erreur rapport: ${error.message}`);
+      }
       break;
 
     default:
