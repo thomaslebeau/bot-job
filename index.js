@@ -14,7 +14,11 @@ import {
   getNewOpportunities,
 } from "./googleSheets.js";
 import { sendMorningReport, sendUrgentAlert } from "./emailService.js";
-import { analyzeJobWithAI, testGroqConnection } from "./aiAnalyzer.js";
+import {
+  analyzeJobWithAI,
+  testGroqConnection,
+  getGroqUsageStats,
+} from "./aiAnalyzer.js";
 
 dotenv.config();
 
