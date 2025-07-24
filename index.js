@@ -18,6 +18,8 @@ import {
   analyzeJobWithAI,
   testGroqConnection,
   getGroqUsageStats,
+  resetGroqStats,
+  getDailyStatsReport,
 } from "./aiAnalyzer.js";
 
 dotenv.config();
