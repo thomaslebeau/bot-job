@@ -494,7 +494,7 @@ export const analyzeJobWithAI = async (jobData) => {
           content: prompt,
         },
       ],
-      model: "llama-3.1-70b-versatile",
+      model: "llama-3.1-8b-instant",
       max_tokens: 350,
       temperature: 0.8,
       top_p: 0.9,
@@ -532,7 +532,7 @@ export const analyzeJobWithAI = async (jobData) => {
       },
       metadata: {
         provider: "Groq",
-        model: "llama-3.1-70b-versatile",
+        model: "llama-3.1-8b-instant",
         tokens: tokens,
         responseTime: responseTime,
         cost: 0,
