@@ -14,6 +14,7 @@ import {
   getNewOpportunities,
 } from "./googleSheets.js";
 import { sendMorningReport, sendUrgentAlert } from "./emailService.js";
+import { analyzeJobWithAI, testGroqConnection } from "./aiAnalyzer.js";
 
 dotenv.config();
 
@@ -296,26 +297,21 @@ const processOpportunities = async (newJobs, guild) => {
           job.relevanceScore >= 15 && job.hoursAgo <= 3 && job.numComments <= 2;
 
         // Générer réponse suggérée
-        const responseData = generateResponse(
-          job.title.toLowerCase(),
-          0,
-          job.description
+        console.log(
+          `🤖 Génération réponse IA pour: ${job.title.substring(0, 40)}...`
         );
-
-        // Poster dans Discord
-        await redditChannel.send({
-          embeds: [
-            redditCard(
-              job.title,
-              job.url,
-              subreddit,
-              job.relevanceScore,
-              job.description,
-              job.numComments,
-              job.hoursAgo
-            ),
-          ],
+        const aiAnalysis = await analyzeJobWithAI({
+          title: job.title,
+          description: job.description,
+          subreddit: subreddit,
+          relevanceScore: job.relevanceScore,
         });
+
+        await redditChannel.send(
+          `**🤖 Réponse IA (${aiAnalysis.analysis.projectType}):**\n` +
+            `\`\`\`${aiAnalysis.response}\`\`\`\n` +
+            `*📊 Score: ${aiAnalysis.analysis.relevanceScore} | 💰 ${aiAnalysis.analysis.budget} | ⚡ ${aiAnalysis.metadata.provider} (${aiAnalysis.metadata.responseTime}ms)*`
+        );
 
         // Envoyer la réponse suggérée
         await redditChannel.send(
@@ -756,6 +752,55 @@ client.on("messageCreate", async (message) => {
         .setTimestamp();
 
       message.channel.send({ embeds: [helpEmbed] });
+      break;
+    case "test-ai":
+      message.channel.send("🚀 Test de l'IA Groq...");
+
+      try {
+        const success = await testGroqConnection();
+        if (success) {
+          message.channel.send("✅ Connexion Groq OK! Test d'analyse...");
+
+          const testJob = {
+            title:
+              "[HIRING] Looking for creature design for D&D campaign - $500 budget",
+            description:
+              "Need original monster designs for my homebrew campaign. Semi-realistic style preferred. Looking for 5 unique creatures with reference sheets and lore descriptions.",
+            subreddit: "HungryArtists",
+            relevanceScore: 22,
+          };
+
+          const analysis = await analyzeJobWithAI(testJob);
+
+          message.channel.send(
+            `**🤖 Résultat test IA:**\n\`\`\`${analysis.response}\`\`\`\n` +
+              `*✅ Succès: ${analysis.success ? "Oui" : "Non"} | ⚡ ${
+                analysis.metadata.provider
+              } | 🕐 ${analysis.metadata.responseTime}ms | 📊 Qualité: ${
+                analysis.analysis.qualityScore
+              }/10*`
+          );
+        } else {
+          message.channel.send(
+            "❌ Impossible de se connecter à Groq. Vérifiez votre GROQ_API_KEY."
+          );
+        }
+      } catch (error) {
+        message.channel.send(`❌ Erreur test IA: ${error.message}`);
+      }
+      break;
+
+    case "ai-stats":
+      message.channel.send("📊 Récupération des stats IA...");
+      const stats = getGroqUsageStats();
+      message.channel.send(
+        `**📊 Statistiques Groq:**\n` +
+          `• Requêtes totales: ${stats.totalRequests}\n` +
+          `• Tokens consommés: ${stats.totalTokens}\n` +
+          `• Temps de réponse moyen: ${stats.averageResponseTime}ms\n` +
+          `• Taux de succès: ${stats.successRate}%\n` +
+          `• Coût estimé: $${stats.estimatedCost} (Groq = Gratuit! 🎉)`
+      );
       break;
 
     default:
