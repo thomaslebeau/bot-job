@@ -426,46 +426,52 @@ client.on("ready", async () => {
   });
 
   // Rapport email matinal - tous les jours à 8h
-  cron.schedule("0 8 * * *", async () => {
-    console.log("📧 Envoi du rapport matinal...");
+  cron.schedule(
+    "0 8 * * *",
+    async () => {
+      console.log("📧 Envoi du rapport matinal...");
 
-    try {
-      const success = await sendMorningReport();
+      try {
+        const success = await sendMorningReport();
 
-      if (success) {
-        // Notifier dans Discord
+        if (success) {
+          // Notifier dans Discord
+          for (const guild of client.guilds.cache.values()) {
+            const statusChannel = guild.channels.cache.get(channelIds.status);
+            if (statusChannel) {
+              await statusChannel.send({
+                embeds: [
+                  statusCard(
+                    "📧 Rapport matinal envoyé par email avec succès!",
+                    "success"
+                  ),
+                ],
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error("❌ Erreur envoi rapport matinal:", error);
+
         for (const guild of client.guilds.cache.values()) {
           const statusChannel = guild.channels.cache.get(channelIds.status);
           if (statusChannel) {
             await statusChannel.send({
               embeds: [
                 statusCard(
-                  "📧 Rapport matinal envoyé par email avec succès!",
-                  "success"
+                  `❌ Erreur envoi rapport matinal: ${error.message}`,
+                  "error"
                 ),
               ],
             });
           }
         }
       }
-    } catch (error) {
-      console.error("❌ Erreur envoi rapport matinal:", error);
-
-      for (const guild of client.guilds.cache.values()) {
-        const statusChannel = guild.channels.cache.get(channelIds.status);
-        if (statusChannel) {
-          await statusChannel.send({
-            embeds: [
-              statusCard(
-                `❌ Erreur envoi rapport matinal: ${error.message}`,
-                "error"
-              ),
-            ],
-          });
-        }
-      }
+    },
+    {
+      timezone: "Europe/Paris",
     }
-  });
+  );
 
   console.log("⏰ Surveillance Reddit activée (toutes les 2 heures)");
   console.log("📧 Rapport matinal programmé (8h tous les jours)");
