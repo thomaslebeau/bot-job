@@ -33,7 +33,6 @@ const ARTIST_PROFILE = {
     "Semi-realistic and stylized art",
     "Fantasy illustration work",
     "Concept art development",
-    "TCG card game for Genesis Battle of Champions",
   ],
   portfolio: process.env.PORTFOLIO_URL || "https://votre-portfolio.com",
 
@@ -90,37 +89,69 @@ Budget: ${budget}
 Project Type: ${projectType}
 Priority: ${urgencyLevel}
 
+CRITICAL: READ THE FULL POST CAREFULLY. Do NOT ask for information that's already provided in the title or description. Show that you actually read and understood their brief by referencing specific details they mentioned.
+
 RESPONSE REQUIREMENTS:
 1. Language: Write ONLY in ${language}
-2. Length: Maximum 150 words
-3. Tone: Professional but friendly, confident without being pushy
-4. Structure: Brief intro → relevant experience → approach → portfolio link → simple closing
+2. Length: Maximum 60 words (2-3 lines)
+3. Tone: Casual, direct, helpful
+4. Structure: Show understanding → portfolio → smart question
 
 CRITICAL RULES:
-- Do NOT invent fake projects or experiences
-- Do NOT use clichés like "thrilled", "perfect fit", "excited to work"
-- Do NOT be overly formal or robotic
-- ALWAYS include the portfolio link: ${ARTIST_PROFILE.portfolio}
-- Show you READ and UNDERSTOOD their specific brief
-- Be concise and direct
+- ULTRA SHORT: 2-3 lines maximum
+- Show you READ their post by mentioning specific details
+- Do NOT ask for info already provided (timeline, style, budget, format, etc.)
+- Add REAL VALUE: ask about missing technical details or next steps
+- ALWAYS include portfolio link: ${ARTIST_PROFILE.portfolio}
+- End with a relevant question about something NOT mentioned in their post
 
-FORBIDDEN PHRASES:
-- "I'm thrilled/excited"
-- "This is a perfect fit"
-- "I would be delighted"
-- "I am confident I can"
-- Any fake project references
+SMART RESPONSE STRATEGY:
+- If they mention style → don't ask about style
+- If they mention timeline → don't ask about timeline  
+- If they mention budget → don't ask about budget
+- If they mention format → don't ask about format
+- Instead, ask about technical details they forgot or next steps
 
-Example structure:
-"Hi! [Brief acknowledgment of their project]
-I specialize in [relevant specialty] with a [style] approach that could work well for [their specific need].
-My experience includes [real general experience areas].
-You can see my work at [portfolio]
-[Simple question or next step]
-Best regards"
+GOOD EXAMPLES:
+"Hey! Love the semi-realistic RPG character idea. Portfolio: [link]. Do you need multiple angles or just main view?"
+
+"Your $500 creature design project sounds perfect. Check my work: [link]. How many initial concepts would you like?"
+
+"Cool board game art brief! Here's my portfolio: [link]. What's the final card size you're printing at?"
+
+RESPONSE REQUIREMENTS:
+1. Language: Write ONLY in ${language}
+2. Length: Maximum 60 words (2-3 lines)
+3. Tone: Casual, direct, helpful
+4. Structure: Quick hook → value/insight → portfolio → question
+
+CRITICAL RULES:
+- ULTRA SHORT: 2-3 lines maximum
+- Add REAL VALUE: show understanding, ask smart questions, offer insight
+- Do NOT claim fake experience
+- ALWAYS include portfolio link: ${ARTIST_PROFILE.portfolio}
+- Show you actually READ their brief
+- End with a relevant question
+
+VALUE-ADDING STRATEGIES:
+- Ask about technical details they forgot to mention
+- Offer process insights ("I usually start with rough concepts")
+- Show you understand their challenge
+- Ask about their target audience/usage
+- Mention potential considerations they might not have thought of
+
+GOOD EXAMPLES:
+"Hey! For your card game, do you need print-ready files or just digital? Here's my work: [portfolio]. What's your timeline?"
+
+"Your creature design sounds cool. I usually do 3-4 concept variations first - work well for you? Portfolio: [portfolio]"
+
+"Hi! Character design for your RPG - are you looking for token-style or more detailed illustrations? Check my stuff: [portfolio]"
+
+"Your monster project is interesting. How detailed do the anatomy references need to be? My work: [portfolio]"
 
 Generate ONLY the response, no explanation.`;
 };
+
 // Analyser le type de projet
 const analyzeProjectType = (title, description) => {
   const text = (title + " " + description).toLowerCase();
@@ -242,6 +273,198 @@ const suggestRelevantPortfolioSection = (title) => {
   return "recent-work";
 };
 
+const analyzeProvidedInfo = (title, description) => {
+  const text = (title + " " + description).toLowerCase();
+
+  return {
+    hasTimeline:
+      text.includes("deadline") ||
+      text.includes("asap") ||
+      text.includes("urgent") ||
+      text.includes("by ") ||
+      text.includes("within") ||
+      text.includes("timeline") ||
+      text.match(/\d+\s*(day|week|month)/),
+
+    hasFormat:
+      text.includes("print") ||
+      text.includes("digital") ||
+      text.includes("resolution") ||
+      text.includes("dpi") ||
+      text.includes("format") ||
+      text.includes("file"),
+
+    hasStyle:
+      text.includes("style") ||
+      text.includes("realistic") ||
+      text.includes("cartoon") ||
+      text.includes("anime") ||
+      text.includes("semi-realistic") ||
+      text.includes("stylized"),
+
+    hasUsage:
+      text.includes("commercial") ||
+      text.includes("personal") ||
+      text.includes("game") ||
+      text.includes("book") ||
+      text.includes("card") ||
+      text.includes("token"),
+
+    hasQuantity:
+      text.match(/\d+\s*(character|creature|illustration|piece|artwork)/) ||
+      text.includes("multiple") ||
+      text.includes("series") ||
+      text.includes("set"),
+
+    hasReferences:
+      text.includes("reference") ||
+      text.includes("example") ||
+      text.includes("attach") ||
+      text.includes("inspiration") ||
+      text.includes("style guide"),
+
+    hasBudget:
+      text.match(/\$\d+/) ||
+      text.includes("budget") ||
+      text.includes("pay") ||
+      text.includes("rate") ||
+      text.includes("price"),
+
+    hasAngles:
+      text.includes("turnaround") ||
+      text.includes("multiple view") ||
+      text.includes("front") ||
+      text.includes("back") ||
+      text.includes("side") ||
+      text.includes("angle"),
+
+    hasSize:
+      text.includes("size") ||
+      text.includes("dimension") ||
+      text.match(/\d+x\d+/) ||
+      text.includes("resolution") ||
+      text.includes("pixel"),
+
+    hasColorInfo:
+      text.includes("color") ||
+      text.includes("black and white") ||
+      text.includes("b&w") ||
+      text.includes("full color") ||
+      text.includes("monochrome"),
+  };
+};
+
+const getValueAddingQuestion = (title, description, projectType) => {
+  const text = (title + " " + description).toLowerCase();
+  const provided = analyzeProvidedInfo(title, description);
+
+  // Questions techniques spécifiques selon le type de projet (en évitant les redondances)
+  let questions = [];
+
+  if (
+    projectType.includes("Game") ||
+    text.includes("card") ||
+    text.includes("board")
+  ) {
+    if (!provided.hasFormat)
+      questions.push("Do you need print-ready files or just digital?");
+    if (!provided.hasSize) questions.push("What's the final card size?");
+    if (!provided.hasUsage)
+      questions.push(
+        "What's the final usage - cards, tokens, or illustrations?"
+      );
+  }
+
+  if (projectType.includes("Character") || text.includes("character")) {
+    if (!provided.hasAngles)
+      questions.push(
+        "Are you looking for full illustrations or more token-style?"
+      );
+    if (!provided.hasReferences)
+      questions.push("Do you have reference sheets or descriptions ready?");
+    if (!provided.hasQuantity) questions.push("How many characters total?");
+  }
+
+  if (
+    projectType.includes("Creature") ||
+    text.includes("creature") ||
+    text.includes("monster")
+  ) {
+    if (!provided.hasAngles)
+      questions.push("How detailed do the anatomy references need to be?");
+    if (!provided.hasAngles)
+      questions.push("Multiple angles or just main view?");
+    if (!provided.hasReferences)
+      questions.push("Do you have any creature references in mind?");
+  }
+
+  if (
+    text.includes("campaign") ||
+    text.includes("dnd") ||
+    text.includes("d&d")
+  ) {
+    if (!provided.hasUsage)
+      questions.push("Is this for VTT tokens or print handouts?");
+    if (!provided.hasQuantity) questions.push("How many characters total?");
+  }
+
+  if (text.includes("book") || text.includes("story")) {
+    if (!provided.hasColorInfo) questions.push("Black & white or full color?");
+    if (!provided.hasSize) questions.push("What's the target page size?");
+  }
+
+  // Questions génériques mais utiles (en évitant les redondances)
+  if (!provided.hasTimeline)
+    questions.push("What's your timeline looking like?");
+  if (!provided.hasReferences) questions.push("Do you have visual references?");
+  if (!provided.hasFormat)
+    questions.push("What format do you need the finals in?");
+  if (!provided.hasUsage) questions.push("Is this for commercial use?");
+  if (!provided.hasStyle)
+    questions.push("What style direction are you thinking?");
+  if (!provided.hasBudget) questions.push("What's your budget range?");
+
+  // Si toutes les infos importantes sont déjà données, poser des questions plus spécifiques
+  if (questions.length === 0) {
+    if (text.includes("ai") || text.includes("refine")) {
+      questions.push("What specific areas need the most refinement?");
+    } else if (text.includes("concept")) {
+      questions.push("How many initial concepts would you like to see?");
+    } else {
+      questions.push("Any specific details you want me to focus on?");
+      questions.push("When would you like to get started?");
+    }
+  }
+
+  return questions;
+};
+
+const getProjectInsight = (title, description, projectType) => {
+  const text = (title + " " + description).toLowerCase();
+
+  if (text.includes("ai") && text.includes("refine")) {
+    return "I usually start with the AI base then redraw key areas for consistency";
+  }
+
+  if (text.includes("multiple") || text.includes("series")) {
+    return "For multiple pieces, I usually do style guides first to keep consistency";
+  }
+
+  if (text.includes("turnaround") || text.includes("reference")) {
+    return "I typically do 3-4 angles for full reference sheets";
+  }
+
+  if (text.includes("concept") && text.includes("development")) {
+    return "I usually start with 3-4 rough concepts before refining the chosen one";
+  }
+
+  if (text.includes("card") || text.includes("print")) {
+    return "I always deliver print-ready files with bleed margins";
+  }
+
+  return null; // Pas d'insight spécifique
+};
+
 // Évaluer la qualité de la réponse générée
 const assessResponseQuality = (response, originalTitle) => {
   let score = 5; // Score de base sur 10
@@ -280,15 +503,22 @@ const assessResponseQuality = (response, originalTitle) => {
 
 // Réponse de secours si Groq échoue
 const generateFallbackResponse = (jobData) => {
-  const specialty = determineSpecialtyMatch(
-    jobData.title,
-    jobData.description || ""
-  );
   const projectType = analyzeProjectType(
     jobData.title,
     jobData.description || ""
   );
-  const experience = getRelevantExperienceExample(projectType);
+  const questions = getValueAddingQuestion(
+    jobData.title,
+    jobData.description || "",
+    projectType
+  );
+  const insight = getProjectInsight(
+    jobData.title,
+    jobData.description || "",
+    projectType
+  );
+  const randomQuestion =
+    questions[Math.floor(Math.random() * questions.length)];
 
   // Détecter la langue
   const fullText = jobData.title + " " + (jobData.description || "");
@@ -298,25 +528,25 @@ const generateFallbackResponse = (jobData) => {
     fullText.toLowerCase().includes("hiring");
 
   if (isEnglish) {
-    return `Hi! Your ${projectType.toLowerCase()} project looks interesting. I specialize in ${specialty.toLowerCase()} with a semi-realistic, stylized approach.
-
-My experience includes ${experience} and I focus on creating designs that are both visually appealing and functional for your needs.
-
-You can see my work at ${ARTIST_PROFILE.portfolio}
-
-Would love to discuss your vision further. What's your timeline looking like?
-
-Best regards`;
+    if (insight) {
+      return `Hey! Your ${projectType.toLowerCase()} project looks interesting. ${insight}. Check my work: ${
+        ARTIST_PROFILE.portfolio
+      }. ${randomQuestion}`;
+    } else {
+      return `Hey! Your ${projectType.toLowerCase()} project caught my eye. Portfolio here: ${
+        ARTIST_PROFILE.portfolio
+      }. ${randomQuestion}`;
+    }
   } else {
-    return `Bonjour ! Votre projet de ${projectType.toLowerCase()} m'intéresse. Je me spécialise en ${specialty.toLowerCase()} avec une approche semi-réaliste et stylisée.
-
-Mon expérience inclut ${experience} et je me concentre sur la création de designs visuellement attrayants et fonctionnels.
-
-Vous pouvez voir mon travail sur ${ARTIST_PROFILE.portfolio}
-
-J'aimerais discuter de votre vision. Quel est votre calendrier ?
-
-Cordialement`;
+    if (insight) {
+      return `Salut ! Ton projet ${projectType.toLowerCase()} m'intéresse. ${insight}. Mon travail : ${
+        ARTIST_PROFILE.portfolio
+      }. ${randomQuestion}`;
+    } else {
+      return `Salut ! Ton projet ${projectType.toLowerCase()} a l'air sympa. Portfolio : ${
+        ARTIST_PROFILE.portfolio
+      }. ${randomQuestion}`;
+    }
   }
 };
 
