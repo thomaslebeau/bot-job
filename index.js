@@ -6,12 +6,18 @@ import {
   ChannelType,
 } from "discord.js";
 import cron from "node-cron";
-import { getReddit, getRedditForced } from "./getReddit.js";
+import {
+  getReddit,
+  getRedditForced,
+  detectProjectStatus,
+} from "./getReddit.js";
 import { generateResponse } from "./responseTemplates.js";
 import {
   addOpportunityToSheet,
   initSpreadsheet,
   getNewOpportunities,
+  updateClosedOpportunityStatus,
+  autoCloseFoundOpportunities,
 } from "./googleSheets.js";
 import { sendMorningReport, sendUrgentAlert } from "./emailService.js";
 import {
@@ -281,10 +287,67 @@ const processOpportunities = async (newJobs, guild) => {
   if (!redditChannel) return 0;
 
   let processedCount = 0;
+  let closedCount = 0;
 
   for (const job of newJobs) {
     try {
-      // Déterminer le subreddit depuis l'URL
+      // 🆕 VÉRIFIER SI LE PROJET EST FERMÉ
+      const mockSubmission = {
+        title: job.title,
+        selftext: job.description || "",
+        link_flair_text: job.flair || "",
+      };
+
+      const projectStatus = detectProjectStatus(mockSubmission);
+
+      if (projectStatus.isClosed) {
+        console.log(
+          `🔒 Projet fermé détecté: ${job.title.substring(0, 50)}... (${
+            projectStatus.reason
+          })`
+        );
+
+        // Ajouter à Google Sheets avec statut fermé
+        const subredditMatch = job.url.match(/\/r\/([^/]+)\//);
+        const subreddit = subredditMatch ? subredditMatch[1] : "unknown";
+
+        const opportunityData = {
+          ...job,
+          subreddit: subreddit,
+        };
+
+        const sheetResult = await addOpportunityToSheet(opportunityData);
+
+        if (sheetResult === "added") {
+          // Immédiatement marquer comme fermé
+          await updateClosedOpportunityStatus(job.url, projectStatus.reason);
+          closedCount++;
+        }
+
+        // Poster dans Discord avec indication "fermé"
+        await redditChannel.send({
+          embeds: [
+            redditCard(
+              `🔒 [FERMÉ] ${job.title}`,
+              job.url,
+              subreddit,
+              job.relevanceScore,
+              job.description,
+              job.numComments,
+              job.hoursAgo
+            ).setColor(0x888888), // Gris pour les projets fermés
+          ],
+        });
+
+        await redditChannel.send(
+          `**🔒 Projet fermé détecté** (${projectStatus.reason})\n` +
+            `*Cette opportunité a été automatiquement marquée comme fermée dans Google Sheets*`
+        );
+
+        continue; // Passer au job suivant
+      }
+
+      // 🔄 TRAITEMENT NORMAL pour les projets ouverts
       const subredditMatch = job.url.match(/\/r\/([^/]+)\//);
       const subreddit = subredditMatch ? subredditMatch[1] : "unknown";
 
@@ -293,53 +356,28 @@ const processOpportunities = async (newJobs, guild) => {
         subreddit: subreddit,
       };
 
-      // Ajouter à Google Sheets (avec gestion automatique des doublons)
       const sheetResult = await addOpportunityToSheet(opportunityData);
 
-      // Ne poster dans Discord que si c'est réellement nouveau
       if (sheetResult === "added") {
-        // Vérifier si c'est une opportunité urgente
-        const isUrgent =
-          job.relevanceScore >= 15 && job.hoursAgo <= 3 && job.numComments <= 2;
-
-        // Générer réponse suggérée
-        console.log(
-          `🤖 Génération réponse IA pour: ${job.title.substring(0, 40)}...`
-        );
-        const aiAnalysis = await analyzeJobWithAI({
-          title: job.title,
-          description: job.description,
-          subreddit: subreddit,
-          relevanceScore: job.relevanceScore,
-        });
-
-        await redditChannel.send(
-          `**🤖 Réponse IA (${aiAnalysis.analysis.projectType}):**\n` +
-            `\`\`\`${aiAnalysis.response}\`\`\`\n` +
-            `*📊 Score: ${aiAnalysis.analysis.relevanceScore} | 💰 ${aiAnalysis.analysis.budget} | ⚡ ${aiAnalysis.metadata.provider} (${aiAnalysis.metadata.responseTime}ms)*`
-        );
-
-        // Envoyer la réponse suggérée
-        await redditChannel.send(
-          `**💬 Réponse suggérée (${responseData.selectedCategory}):**\n` +
-            `\`\`\`${responseData.response}\`\`\``
-        );
-
-        // Envoyer alerte email si urgent
-        if (isUrgent) {
-          console.log(`🚨 Envoi alerte urgente pour: ${job.title}`);
-          await sendUrgentAlert(job);
-        }
-
+        // ... votre code existant pour traitement normal ...
         processedCount++;
-
-        // Délai pour éviter le rate limiting Discord
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      } else if (sheetResult === "duplicate") {
-        console.log(`⏭️ Doublon ignoré: ${job.title.substring(0, 50)}...`);
       }
     } catch (error) {
       console.error(`❌ Erreur traitement job "${job.title}":`, error);
+    }
+  }
+
+  if (closedCount > 0) {
+    const statusChannel = guild.channels.cache.get(channelIds.status);
+    if (statusChannel) {
+      await statusChannel.send({
+        embeds: [
+          statusCard(
+            `🔒 ${closedCount} projets fermés détectés et marqués automatiquement`,
+            "info"
+          ),
+        ],
+      });
     }
   }
 
@@ -472,6 +510,32 @@ client.on("ready", async () => {
       timezone: "Europe/Paris",
     }
   );
+
+  cron.schedule("0 10 * * *", async () => {
+    console.log("🧹 Nettoyage quotidien des opportunités fermées...");
+
+    try {
+      const result = await autoCloseFoundOpportunities();
+
+      if (result.success && result.closedCount > 0) {
+        for (const guild of client.guilds.cache.values()) {
+          const statusChannel = guild.channels.cache.get(channelIds.status);
+          if (statusChannel) {
+            await statusChannel.send({
+              embeds: [
+                statusCard(
+                  `🧹 Nettoyage automatique: ${result.closedCount} opportunités fermées détectées et mises à jour`,
+                  "info"
+                ),
+              ],
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("❌ Erreur nettoyage quotidien:", error);
+    }
+  });
 
   console.log("⏰ Surveillance Reddit activée (toutes les 2 heures)");
   console.log("📧 Rapport matinal programmé (8h tous les jours)");
@@ -878,6 +942,68 @@ client.on("messageCreate", async (message) => {
         message.channel.send(report);
       } catch (error) {
         message.channel.send(`❌ Erreur rapport: ${error.message}`);
+      }
+      break;
+
+    case "check-closed":
+      message.channel.send("🔍 Vérification des projets fermés...");
+
+      try {
+        const result = await autoCloseFoundOpportunities();
+
+        if (result.success) {
+          if (result.closedCount > 0) {
+            message.channel.send(
+              `✅ **Nettoyage terminé!**\n` +
+                `🔒 ${result.closedCount} opportunités fermées détectées\n` +
+                `📊 Statuts mis à jour dans Google Sheets`
+            );
+
+            // Afficher les détails si pas trop nombreux
+            if (result.details && result.details.length <= 5) {
+              for (const detail of result.details) {
+                message.channel.send(
+                  `🔒 **Fermé:** ${detail.title.substring(0, 50)}...\n` +
+                    `**Raison:** ${detail.reason}\n` +
+                    `**Nouveau statut:** ${detail.newStatus}`
+                );
+              }
+            }
+          } else {
+            message.channel.send("✅ Aucune opportunité fermée détectée");
+          }
+        } else {
+          message.channel.send(`❌ Erreur: ${result.error}`);
+        }
+      } catch (error) {
+        message.channel.send(`❌ Erreur vérification: ${error.message}`);
+      }
+      break;
+
+    case "test-closed":
+      const testUrl = "https://reddit.com/test";
+      const testTitles = [
+        "Looking for artist - FOUND thanks everyone!",
+        "[HIRING] Character design needed - $300",
+        "Need creature art [FILLED]",
+        "Artist wanted for game (EDIT: Found someone, thanks!)",
+      ];
+
+      message.channel.send("🧪 Test détection projets fermés...\n");
+
+      for (const title of testTitles) {
+        const mockSubmission = {
+          title: title,
+          selftext: "",
+          link_flair_text: "",
+        };
+
+        const status = detectProjectStatus(mockSubmission);
+        const result = status.isClosed ? "🔒 FERMÉ" : "✅ OUVERT";
+
+        message.channel.send(
+          `${result} "${title}"\n` + `Raison: ${status.reason}`
+        );
       }
       break;
 

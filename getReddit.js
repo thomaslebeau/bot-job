@@ -268,6 +268,140 @@ const adjustScoreForTimingAndCompetition = (
   return adjustedScore;
 };
 
+const detectProjectStatus = (submission) => {
+  const title = submission.title.toLowerCase();
+  const description = (submission.selftext || "").toLowerCase();
+  const flair = (submission.link_flair_text || "").toLowerCase();
+  const fullText = title + " " + description + " " + flair;
+
+  // Mots-clés indiquant que l'artiste a été trouvé
+  const foundKeywords = [
+    "found",
+    "artist found",
+    "position filled",
+    "filled",
+    "closed",
+    "complete",
+    "completed",
+    "hired",
+    "thank you everyone",
+    "thanks everyone",
+    "no longer needed",
+    "no longer looking",
+    "not needed anymore",
+    "edit: found",
+    "update: found",
+    "edit: filled",
+    "update: filled",
+    "edit: closed",
+    "update: closed",
+    "edit: hired",
+    "update: hired",
+    "solved",
+    "done",
+    "finished",
+  ];
+
+  // Patterns spécifiques
+  const foundPatterns = [
+    /\[found\]/,
+    /\[filled\]/,
+    /\[closed\]/,
+    /\[hired\]/,
+    /\[complete\]/,
+    /edit.*found/,
+    /update.*found/,
+    /edit.*filled/,
+    /update.*filled/,
+    /edit.*hired/,
+    /update.*hired/,
+    /thanks.*everyone.*found/,
+    /thank.*you.*all.*found/,
+  ];
+
+  // Vérifier les mots-clés
+  const hasFoundKeyword = foundKeywords.some((keyword) =>
+    fullText.includes(keyword)
+  );
+
+  // Vérifier les patterns
+  const hasFoundPattern = foundPatterns.some((pattern) =>
+    pattern.test(fullText)
+  );
+
+  // Vérifier le flair
+  const hasFoundFlair =
+    flair.includes("found") ||
+    flair.includes("filled") ||
+    flair.includes("closed") ||
+    flair.includes("hired") ||
+    flair.includes("complete");
+
+  // Analyser les commentaires du poster pour voir s'il a trouvé quelqu'un
+  let hasFoundComment = false;
+  // Note: Pour une analyse complète des commentaires, il faudrait une requête supplémentaire
+  // Ici on se concentre sur le titre/description/flair
+
+  const isProjectClosed = hasFoundKeyword || hasFoundPattern || hasFoundFlair;
+
+  return {
+    isClosed: isProjectClosed,
+    reason: hasFoundFlair
+      ? "FLAIR_FOUND"
+      : hasFoundPattern
+      ? "PATTERN_FOUND"
+      : hasFoundKeyword
+      ? "KEYWORD_FOUND"
+      : "OPEN",
+    details: {
+      foundInTitle: foundKeywords.some((keyword) => title.includes(keyword)),
+      foundInDescription: foundKeywords.some((keyword) =>
+        description.includes(keyword)
+      ),
+      foundInFlair: hasFoundFlair,
+      foundPattern: hasFoundPattern,
+    },
+  };
+};
+
+const checkCommentsForStatus = async (submission, r) => {
+  try {
+    // Charger les commentaires (limitons à 10 pour éviter trop d'API calls)
+    const comments = await submission.comments.fetchMore({ amount: 10 });
+
+    const authorName = submission.author.name;
+    let foundByAuthor = false;
+
+    for (const comment of comments) {
+      if (comment.author && comment.author.name === authorName) {
+        const commentText = comment.body.toLowerCase();
+
+        const foundInComments = [
+          "thanks everyone",
+          "thank you all",
+          "found someone",
+          "artist found",
+          "position filled",
+          "hired someone",
+          "no longer needed",
+          "closed",
+          "found an artist",
+        ];
+
+        if (foundInComments.some((phrase) => commentText.includes(phrase))) {
+          foundByAuthor = true;
+          break;
+        }
+      }
+    }
+
+    return foundByAuthor;
+  } catch (error) {
+    console.error("❌ Erreur analyse commentaires:", error);
+    return false;
+  }
+};
+
 // 🆕 FONCTION POUR DÉTECTER LES "FOR HIRE" DÉGUISÉS
 const isForHirePost = (title, description, flair) => {
   const titleLower = title.toLowerCase();
@@ -872,4 +1006,9 @@ export const getRedditForced = async () => {
 };
 
 // 🆕 EXPORT DES NOUVELLES FONCTIONS POUR DEBUGGING
-export { isForHirePost, isValidHiringPost, checkCommentAvailability };
+export {
+  isForHirePost,
+  isValidHiringPost,
+  checkCommentAvailability,
+  detectProjectStatus,
+};

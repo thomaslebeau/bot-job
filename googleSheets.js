@@ -204,6 +204,219 @@ const createHeaders = async () => {
   }
 };
 
+export const updateClosedOpportunityStatus = async (url, reason) => {
+  try {
+    if (!sheets) {
+      const authSuccess = await initGoogleAuth();
+      if (!authSuccess) return false;
+    }
+
+    await ensureOpportunitiesSheetExists();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Opportunities!A:P",
+    });
+
+    const rows = response.data.values || [];
+
+    // Trouver la ligne correspondante à l'URL
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][3] === url) {
+        // Colonne D = URL
+        const currentStatus = rows[i][9]; // Colonne J = Statut
+
+        // Ne mettre à jour que si le statut est encore NOUVEAU
+        if (currentStatus === "NOUVEAU") {
+          const statusRange = `Opportunities!J${i + 1}`; // Colonne Statut
+          const notesRange = `Opportunities!N${i + 1}`; // Colonne Notes
+
+          // Déterminer le nouveau statut selon la raison
+          let newStatus = "FERMÉ";
+          let note = "";
+
+          switch (reason) {
+            case "FLAIR_FOUND":
+              newStatus = "FERMÉ (Flair)";
+              note = "Fermé via flair Reddit";
+              break;
+            case "PATTERN_FOUND":
+              newStatus = "FERMÉ (Edit)";
+              note = "Fermé via edit du titre";
+              break;
+            case "KEYWORD_FOUND":
+              newStatus = "FERMÉ (Found)";
+              note = "Fermé - artiste trouvé";
+              break;
+            case "COMMENTS_FOUND":
+              newStatus = "FERMÉ (Commentaire)";
+              note = "Fermé via commentaire auteur";
+              break;
+          }
+
+          // Mettre à jour le statut
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: statusRange,
+            valueInputOption: "RAW",
+            resource: {
+              values: [[newStatus]],
+            },
+          });
+
+          // Ajouter une note explicative
+          const currentNotes = rows[i][13] || ""; // Notes existantes
+          const updatedNotes = currentNotes
+            ? `${currentNotes} | Auto-fermé: ${note}`
+            : `Auto-fermé: ${note}`;
+
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: notesRange,
+            valueInputOption: "RAW",
+            resource: {
+              values: [[updatedNotes]],
+            },
+          });
+
+          console.log(
+            `🔒 Opportunité auto-fermée: ${newStatus} - ${opportunity.title?.substring(
+              0,
+              50
+            )}...`
+          );
+          return { updated: true, newStatus, note };
+        } else {
+          console.log(
+            `⏭️ Opportunité déjà traitée (${currentStatus}): ${url.substring(
+              0,
+              50
+            )}...`
+          );
+          return { updated: false, reason: "already_processed" };
+        }
+      }
+    }
+
+    console.log(`❓ URL non trouvée dans Sheets: ${url.substring(0, 50)}...`);
+    return { updated: false, reason: "not_found" };
+  } catch (error) {
+    console.error("❌ Erreur mise à jour statut fermé:", error);
+    return { updated: false, error: error.message };
+  }
+};
+
+export const checkAndCloseOpportunities = async (opportunities) => {
+  let closedCount = 0;
+  const results = [];
+
+  for (const opportunity of opportunities) {
+    try {
+      // Importer les fonctions de détection depuis getReddit.js
+      const { detectProjectStatus } = await import("./getReddit.js");
+
+      // Simuler un objet submission pour la détection
+      const mockSubmission = {
+        title: opportunity.title,
+        selftext: opportunity.description || "",
+        link_flair_text: opportunity.flair || "",
+      };
+
+      const status = detectProjectStatus(mockSubmission);
+
+      if (status.isClosed) {
+        const updateResult = await updateClosedOpportunityStatus(
+          opportunity.url,
+          status.reason
+        );
+
+        if (updateResult.updated) {
+          closedCount++;
+          results.push({
+            url: opportunity.url,
+            title: opportunity.title,
+            action: "closed",
+            reason: status.reason,
+            newStatus: updateResult.newStatus,
+          });
+        }
+      }
+    } catch (error) {
+      console.error(
+        `❌ Erreur traitement ${opportunity.title?.substring(0, 30)}:`,
+        error
+      );
+    }
+  }
+
+  return { closedCount, results };
+};
+
+export const autoCloseFoundOpportunities = async () => {
+  try {
+    console.log(
+      "🧹 Début du nettoyage automatique des opportunités fermées..."
+    );
+
+    if (!sheets) {
+      const authSuccess = await initGoogleAuth();
+      if (!authSuccess) return { success: false, error: "Auth failed" };
+    }
+
+    await ensureOpportunitiesSheetExists();
+
+    // Récupérer toutes les opportunités avec statut NOUVEAU
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Opportunities!A:P",
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length <= 1) {
+      return { success: true, message: "Aucune opportunité à vérifier" };
+    }
+
+    // Filtrer les opportunités encore ouvertes (statut NOUVEAU)
+    const openOpportunities = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row[9] === "NOUVEAU") {
+        // Colonne J = Statut
+        openOpportunities.push({
+          title: row[1],
+          url: row[3],
+          description: row[1], // Utiliser le titre comme description pour la détection
+          flair: "", // Pas de flair stocké dans sheets
+        });
+      }
+    }
+
+    console.log(
+      `🔍 ${openOpportunities.length} opportunités ouvertes à vérifier`
+    );
+
+    if (openOpportunities.length === 0) {
+      return { success: true, message: "Aucune opportunité ouverte" };
+    }
+
+    // Vérifier et fermer les opportunités trouvées fermées
+    const results = await checkAndCloseOpportunities(openOpportunities);
+
+    console.log(
+      `✅ Nettoyage terminé: ${results.closedCount} opportunités fermées`
+    );
+
+    return {
+      success: true,
+      closedCount: results.closedCount,
+      details: results.results,
+    };
+  } catch (error) {
+    console.error("❌ Erreur nettoyage auto:", error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const opportunityExists = async (url) => {
   try {
     if (!sheets) {
