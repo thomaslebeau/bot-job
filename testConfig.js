@@ -14,7 +14,7 @@ async function testGoogleSheets() {
       GOOGLE_PROJECT_ID: process.env.GOOGLE_PROJECT_ID,
       GOOGLE_PRIVATE_KEY: process.env.GOOGLE_PRIVATE_KEY,
       GOOGLE_CLIENT_EMAIL: process.env.GOOGLE_CLIENT_EMAIL,
-      GOOGLE_SPREADSHEET_ID: process.env.GOOGLE_SPREADSHEET_ID,
+      GOOGLE_SPREADSHEET_ID: process.env.GOOGLE_SPREADSHEET_ID
     };
 
     for (const [key, value] of Object.entries(requiredVars)) {
@@ -51,17 +51,16 @@ async function testGoogleSheets() {
       client_id: process.env.GOOGLE_CLIENT_ID,
       auth_uri: "https://accounts.google.com/o/oauth2/auth",
       token_uri: "https://oauth2.googleapis.com/token",
-      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs"
     };
 
     // 4. Tester l'authentification
     console.log("\n4️⃣ Test de l'authentification...");
     const auth = new google.auth.GoogleAuth({
       credentials: credentials,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"]
     });
 
-    const authClient = await auth.getClient();
     console.log("✅ Authentification réussie");
 
     // 5. Créer le client Sheets
@@ -76,7 +75,7 @@ async function testGoogleSheets() {
 
     try {
       spreadsheet = await sheets.spreadsheets.get({
-        spreadsheetId: spreadsheetId,
+        spreadsheetId: spreadsheetId
       });
 
       console.log("✅ Spreadsheet accessible");
@@ -84,7 +83,7 @@ async function testGoogleSheets() {
       console.log("📊 Nombre de sheets:", spreadsheet.data.sheets.length);
 
       // Lister les noms des sheets
-      spreadsheet.data.sheets.forEach((sheet) => {
+      spreadsheet.data.sheets.forEach(sheet => {
         console.log(`   - ${sheet.properties.title}`);
       });
     } catch (accessError) {
@@ -92,18 +91,12 @@ async function testGoogleSheets() {
 
       if (accessError.message.includes("not found")) {
         console.log("💡 Le spreadsheet n'existe pas ou l'ID est incorrect");
-        console.log(
-          "🔗 Vérifiez l'URL: https://docs.google.com/spreadsheets/d/" +
-            spreadsheetId
-        );
+        console.log("🔗 Vérifiez l'URL: https://docs.google.com/spreadsheets/d/" + spreadsheetId);
       } else if (accessError.message.includes("permission")) {
         console.log("💡 Problème de permissions");
+        console.log("📧 Avez-vous partagé le Google Sheet avec:", process.env.GOOGLE_CLIENT_EMAIL);
         console.log(
-          "📧 Avez-vous partagé le Google Sheet avec:",
-          process.env.GOOGLE_CLIENT_EMAIL
-        );
-        console.log(
-          '🔧 Dans Google Sheets → Partager → Ajouter cette adresse avec permissions "Éditeur"'
+          "🔧 Dans Google Sheets → Partager → Ajouter cette adresse avec permissions \"Éditeur\""
         );
       }
       throw accessError;
@@ -122,8 +115,8 @@ async function testGoogleSheets() {
         range: `${firstSheetName}!A1`,
         valueInputOption: "RAW",
         resource: {
-          values: [["Test Bot - " + new Date().toLocaleString()]],
-        },
+          values: [["Test Bot - " + new Date().toLocaleString()]]
+        }
       });
 
       console.log(`✅ Écriture réussie dans ${firstSheetName}!A1`);
@@ -140,13 +133,9 @@ async function testGoogleSheets() {
 
     console.log("\n🔧 SOLUTIONS POSSIBLES:");
     console.log("1. Vérifiez que toutes les variables sont dans votre .env");
-    console.log(
-      "2. Téléchargez un nouveau fichier JSON des credentials Google"
-    );
+    console.log("2. Téléchargez un nouveau fichier JSON des credentials Google");
     console.log("3. Partagez le Google Sheet avec votre service account email");
-    console.log(
-      "4. Vérifiez que l'API Google Sheets est activée dans votre projet"
-    );
+    console.log("4. Vérifiez que l'API Google Sheets est activée dans votre projet");
 
     process.exit(1);
   }

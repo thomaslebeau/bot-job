@@ -1,9 +1,8 @@
 import { google } from "googleapis";
-import fs from "fs/promises";
+import snoowrap from "snoowrap";
 
 // Configuration Google Sheets
 let SPREADSHEET_ID; // Déclaré ici pour être accessible partout
-const RANGE = "Opportunities!A:P"; // Colonnes A à P
 
 let sheets;
 
@@ -21,18 +20,9 @@ const initGoogleAuth = async () => {
       !SPREADSHEET_ID
     ) {
       console.error("❌ Variables manquantes:");
-      console.error(
-        "GOOGLE_PROJECT_ID:",
-        process.env.GOOGLE_PROJECT_ID ? "✅" : "❌"
-      );
-      console.error(
-        "GOOGLE_PRIVATE_KEY:",
-        process.env.GOOGLE_PRIVATE_KEY ? "✅" : "❌"
-      );
-      console.error(
-        "GOOGLE_CLIENT_EMAIL:",
-        process.env.GOOGLE_CLIENT_EMAIL ? "✅" : "❌"
-      );
+      console.error("GOOGLE_PROJECT_ID:", process.env.GOOGLE_PROJECT_ID ? "✅" : "❌");
+      console.error("GOOGLE_PRIVATE_KEY:", process.env.GOOGLE_PRIVATE_KEY ? "✅" : "❌");
+      console.error("GOOGLE_CLIENT_EMAIL:", process.env.GOOGLE_CLIENT_EMAIL ? "✅" : "❌");
       console.error("GOOGLE_SPREADSHEET_ID:", SPREADSHEET_ID ? "✅" : "❌");
       throw new Error(
         "Variables d'environnement Google manquantes. Vérifiez: GOOGLE_PROJECT_ID, GOOGLE_PRIVATE_KEY, GOOGLE_CLIENT_EMAIL, GOOGLE_SPREADSHEET_ID"
@@ -66,21 +56,17 @@ const initGoogleAuth = async () => {
       client_id: process.env.GOOGLE_CLIENT_ID,
       auth_uri: "https://accounts.google.com/o/oauth2/auth",
       token_uri: "https://oauth2.googleapis.com/token",
-      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs"
     };
 
     console.log("🔧 Création de l'authentification Google...");
 
     const auth = new google.auth.GoogleAuth({
       credentials: credentials,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"]
     });
 
     console.log("📋 Test de l'authentification...");
-
-    // Tester l'authentification
-    const authClient = await auth.getClient();
-    console.log("✅ Client authentifié");
 
     sheets = google.sheets({ version: "v4", auth });
 
@@ -88,7 +74,7 @@ const initGoogleAuth = async () => {
     console.log("🧪 Test d'accès au spreadsheet...");
     try {
       await sheets.spreadsheets.get({
-        spreadsheetId: SPREADSHEET_ID,
+        spreadsheetId: SPREADSHEET_ID
       });
       console.log("✅ Accès au spreadsheet confirmé");
     } catch (accessError) {
@@ -130,24 +116,22 @@ const initGoogleAuth = async () => {
 const createHeaders = async () => {
   try {
     if (!SPREADSHEET_ID) {
-      throw new Error(
-        "GOOGLE_SPREADSHEET_ID manquant dans les variables d'environnement"
-      );
+      throw new Error("GOOGLE_SPREADSHEET_ID manquant dans les variables d'environnement");
     }
 
     // D'abord, vérifier si le sheet "Opportunities" existe
     console.log("🔍 Vérification des feuilles existantes...");
     const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: SPREADSHEET_ID
     });
 
     let opportunitiesSheet = spreadsheet.data.sheets.find(
-      (sheet) => sheet.properties.title === "Opportunities"
+      sheet => sheet.properties.title === "Opportunities"
     );
 
     // Si le sheet "Opportunities" n'existe pas, le créer
     if (!opportunitiesSheet) {
-      console.log('📄 Création de la feuille "Opportunities"...');
+      console.log("📄 Création de la feuille \"Opportunities\"...");
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
         resource: {
@@ -155,16 +139,16 @@ const createHeaders = async () => {
             {
               addSheet: {
                 properties: {
-                  title: "Opportunities",
-                },
-              },
-            },
-          ],
-        },
+                  title: "Opportunities"
+                }
+              }
+            }
+          ]
+        }
       });
-      console.log('✅ Feuille "Opportunities" créée');
+      console.log("✅ Feuille \"Opportunities\" créée");
     } else {
-      console.log('✅ Feuille "Opportunities" existe déjà');
+      console.log("✅ Feuille \"Opportunities\" existe déjà");
     }
 
     const headers = [
@@ -183,7 +167,7 @@ const createHeaders = async () => {
       "Suivi Client",
       "Notes",
       "Priorité",
-      "Catégorie",
+      "Catégorie"
     ];
 
     await sheets.spreadsheets.values.update({
@@ -191,25 +175,18 @@ const createHeaders = async () => {
       range: "Opportunities!A1:P1",
       valueInputOption: "RAW",
       resource: {
-        values: [headers],
-      },
+        values: [headers]
+      }
     });
 
-    console.log(
-      '✅ Headers Google Sheets créés dans la feuille "Opportunities"'
-    );
+    console.log("✅ Headers Google Sheets créés dans la feuille \"Opportunities\"");
   } catch (error) {
     console.error("❌ Erreur création headers:", error);
     throw error; // Propager l'erreur pour debugging
   }
 };
 
-export const updateOpportunityStatus = async (
-  url,
-  status,
-  reason,
-  updateInfo = null
-) => {
+export const updateOpportunityStatus = async (url, status, reason, updateInfo = null) => {
   try {
     if (!sheets) {
       const authSuccess = await initGoogleAuth();
@@ -220,7 +197,7 @@ export const updateOpportunityStatus = async (
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Opportunities!A:P",
+      range: "Opportunities!A:P"
     });
 
     const rows = response.data.values || [];
@@ -232,10 +209,7 @@ export const updateOpportunityStatus = async (
         const currentStatus = rows[i][9]; // Colonne J = Statut
 
         // Ne mettre à jour que si nécessaire
-        if (
-          currentStatus === "NOUVEAU" ||
-          (currentStatus === "EN_COURS" && status === "FERMÉ")
-        ) {
+        if (currentStatus === "NOUVEAU" || (currentStatus === "EN_COURS" && status === "FERMÉ")) {
           const statusRange = `Opportunities!J${i + 1}`; // Colonne Statut
           const notesRange = `Opportunities!N${i + 1}`; // Colonne Notes
 
@@ -245,55 +219,52 @@ export const updateOpportunityStatus = async (
 
           if (status === "FERMÉ") {
             switch (reason) {
-              case "FLAIR_FOUND":
-                newStatus = "FERMÉ (Flair)";
-                note = "Fermé via flair Reddit";
-                break;
-              case "PATTERN_FOUND":
-                newStatus = "FERMÉ (Edit)";
-                note = "Fermé via edit du titre";
-                break;
-              case "KEYWORD_FOUND":
-                newStatus = "FERMÉ (Found)";
-                note = "Fermé - artiste trouvé";
-                break;
-              case "COMMENTS_FOUND":
-                newStatus = "FERMÉ (Commentaire)";
-                note = "Fermé via commentaire auteur";
-                break;
+            case "FLAIR_FOUND":
+              newStatus = "FERMÉ (Flair)";
+              note = "Fermé via flair Reddit";
+              break;
+            case "PATTERN_FOUND":
+              newStatus = "FERMÉ (Edit)";
+              note = "Fermé via edit du titre";
+              break;
+            case "KEYWORD_FOUND":
+              newStatus = "FERMÉ (Found)";
+              note = "Fermé - artiste trouvé";
+              break;
+            case "COMMENTS_FOUND":
+              newStatus = "FERMÉ (Commentaire)";
+              note = "Fermé via commentaire auteur";
+              break;
               // 🆕 GESTION SUPPRESSION
-              case "USER_DELETED":
-                newStatus = "SUPPRIMÉ (User)";
-                note = "Post supprimé par l'utilisateur";
-                break;
-              case "MOD_REMOVED":
-                newStatus = "SUPPRIMÉ (Mods)";
-                note = "Post supprimé par les modérateurs";
-                break;
+            case "USER_DELETED":
+              newStatus = "SUPPRIMÉ (User)";
+              note = "Post supprimé par l'utilisateur";
+              break;
+            case "MOD_REMOVED":
+              newStatus = "SUPPRIMÉ (Mods)";
+              note = "Post supprimé par les modérateurs";
+              break;
             }
           } else if (status === "EN_COURS") {
             switch (reason) {
-              case "UPDATE_PATTERN":
-                newStatus = "EN_COURS (Update)";
-                note = "Update détecté - révision en cours";
-                break;
-              case "UPDATE_KEYWORD":
-                newStatus = "EN_COURS (Révision)";
-                note = "Révision des candidatures en cours";
-                break;
+            case "UPDATE_PATTERN":
+              newStatus = "EN_COURS (Update)";
+              note = "Update détecté - révision en cours";
+              break;
+            case "UPDATE_KEYWORD":
+              newStatus = "EN_COURS (Révision)";
+              note = "Révision des candidatures en cours";
+              break;
             }
 
             // 🆕 AJOUTER LES INFOS D'UPDATE
             if (updateInfo) {
               const updateDetails = [];
-              if (updateInfo.timeline)
-                updateDetails.push(`Timeline: ${updateInfo.timeline}`);
+              if (updateInfo.timeline) updateDetails.push(`Timeline: ${updateInfo.timeline}`);
               if (updateInfo.responseCount)
                 updateDetails.push(`Réponses: ${updateInfo.responseCount}`);
-              if (updateInfo.stage)
-                updateDetails.push(`Étape: ${updateInfo.stage}`);
-              if (updateInfo.notes.length > 0)
-                updateDetails.push(updateInfo.notes.join(", "));
+              if (updateInfo.stage) updateDetails.push(`Étape: ${updateInfo.stage}`);
+              if (updateInfo.notes.length > 0) updateDetails.push(updateInfo.notes.join(", "));
 
               if (updateDetails.length > 0) {
                 note += ` | ${updateDetails.join(" | ")}`;
@@ -307,8 +278,8 @@ export const updateOpportunityStatus = async (
             range: statusRange,
             valueInputOption: "RAW",
             resource: {
-              values: [[newStatus]],
-            },
+              values: [[newStatus]]
+            }
           });
 
           // Ajouter une note explicative
@@ -322,29 +293,21 @@ export const updateOpportunityStatus = async (
             range: notesRange,
             valueInputOption: "RAW",
             resource: {
-              values: [[updatedNotes]],
-            },
+              values: [[updatedNotes]]
+            }
           });
 
           console.log(
-            `📊 Opportunité mise à jour: ${newStatus} - ${rows[i][1]?.substring(
-              0,
-              50
-            )}...`
+            `📊 Opportunité mise à jour: ${newStatus} - ${rows[i][1]?.substring(0, 50)}...`
           );
           return {
             updated: true,
             newStatus,
             note,
-            previousStatus: currentStatus,
+            previousStatus: currentStatus
           };
         } else {
-          console.log(
-            `⏭️ Opportunité déjà traitée (${currentStatus}): ${url.substring(
-              0,
-              50
-            )}...`
-          );
+          console.log(`⏭️ Opportunité déjà traitée (${currentStatus}): ${url.substring(0, 50)}...`);
           return { updated: false, reason: "already_processed", currentStatus };
         }
       }
@@ -358,7 +321,7 @@ export const updateOpportunityStatus = async (
   }
 };
 
-export const checkAndUpdateOpportunities = async (opportunities) => {
+export const checkAndUpdateOpportunities = async opportunities => {
   let updatedCount = 0;
   let closedCount = 0;
   let inProgressCount = 0;
@@ -373,7 +336,7 @@ export const checkAndUpdateOpportunities = async (opportunities) => {
       const mockSubmission = {
         title: opportunity.title,
         selftext: opportunity.description || "",
-        link_flair_text: opportunity.flair || "",
+        link_flair_text: opportunity.flair || ""
       };
 
       const statusInfo = detectProjectStatus(mockSubmission);
@@ -393,7 +356,7 @@ export const checkAndUpdateOpportunities = async (opportunities) => {
             title: opportunity.title,
             action: "closed",
             reason: statusInfo.reason,
-            newStatus: updateResult.newStatus,
+            newStatus: updateResult.newStatus
           });
         }
       } else if (statusInfo.isInProgress) {
@@ -413,15 +376,12 @@ export const checkAndUpdateOpportunities = async (opportunities) => {
             action: "in_progress",
             reason: statusInfo.reason,
             newStatus: updateResult.newStatus,
-            updateInfo: statusInfo.updateInfo,
+            updateInfo: statusInfo.updateInfo
           });
         }
       }
     } catch (error) {
-      console.error(
-        `❌ Erreur traitement ${opportunity.title?.substring(0, 30)}:`,
-        error
-      );
+      console.error(`❌ Erreur traitement ${opportunity.title?.substring(0, 30)}:`, error);
     }
   }
 
@@ -430,9 +390,7 @@ export const checkAndUpdateOpportunities = async (opportunities) => {
 
 export const autoCloseFoundOpportunities = async () => {
   try {
-    console.log(
-      "🧹 Début du nettoyage automatique des opportunités fermées..."
-    );
+    console.log("🧹 Début du nettoyage automatique des opportunités fermées...");
 
     if (!sheets) {
       const authSuccess = await initGoogleAuth();
@@ -444,7 +402,7 @@ export const autoCloseFoundOpportunities = async () => {
     // Récupérer toutes les opportunités avec statut NOUVEAU
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Opportunities!A:P",
+      range: "Opportunities!A:P"
     });
 
     const rows = response.data.values || [];
@@ -462,14 +420,12 @@ export const autoCloseFoundOpportunities = async () => {
           title: row[1],
           url: row[3],
           description: row[1], // Utiliser le titre comme description pour la détection
-          flair: "", // Pas de flair stocké dans sheets
+          flair: "" // Pas de flair stocké dans sheets
         });
       }
     }
 
-    console.log(
-      `🔍 ${openOpportunities.length} opportunités ouvertes à vérifier`
-    );
+    console.log(`🔍 ${openOpportunities.length} opportunités ouvertes à vérifier`);
 
     if (openOpportunities.length === 0) {
       return { success: true, message: "Aucune opportunité ouverte" };
@@ -487,7 +443,7 @@ export const autoCloseFoundOpportunities = async () => {
       closedCount: results.closedCount,
       inProgressCount: results.inProgressCount,
       updatedCount: results.updatedCount,
-      details: results.results,
+      details: results.results
     };
   } catch (error) {
     console.error("❌ Erreur nettoyage auto:", error);
@@ -495,7 +451,7 @@ export const autoCloseFoundOpportunities = async () => {
   }
 };
 
-export const opportunityExists = async (url) => {
+export const opportunityExists = async url => {
   try {
     if (!sheets) {
       const authSuccess = await initGoogleAuth();
@@ -506,13 +462,13 @@ export const opportunityExists = async (url) => {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Opportunities!D:D", // Colonne URL
+      range: "Opportunities!D:D" // Colonne URL
     });
 
     const urls = response.data.values || [];
 
     // Vérifier si l'URL existe déjà
-    const exists = urls.some((row) => row[0] === url);
+    const exists = urls.some(row => row[0] === url);
 
     if (exists) {
       console.log(`📋 Opportunité déjà en sheet: ${url.substring(0, 50)}...`);
@@ -526,15 +482,12 @@ export const opportunityExists = async (url) => {
 };
 
 // Ajouter une opportunité au spreadsheet
-export const addOpportunityToSheet = async (opportunity) => {
+export const addOpportunityToSheet = async opportunity => {
   try {
     const alreadyExists = await opportunityExists(opportunity.url);
     if (alreadyExists) {
       console.log(
-        `⏭️ Opportunité déjà présente, ignorée: ${opportunity.title.substring(
-          0,
-          50
-        )}...`
+        `⏭️ Opportunité déjà présente, ignorée: ${opportunity.title.substring(0, 50)}...`
       );
       return "duplicate"; // Retourner un statut spécial
     }
@@ -606,7 +559,7 @@ export const addOpportunityToSheet = async (opportunity) => {
       "", // Suivi Client
       "", // Notes
       priorite, // Priorité
-      categorie, // Catégorie
+      categorie // Catégorie
     ];
 
     // S'assurer que la feuille "Opportunities" existe
@@ -617,15 +570,12 @@ export const addOpportunityToSheet = async (opportunity) => {
       range: "Opportunities!A:P",
       valueInputOption: "RAW",
       resource: {
-        values: [row],
-      },
+        values: [row]
+      }
     });
 
     console.log(
-      `✅ Opportunité ajoutée au Google Sheets: ${opportunity.title.substring(
-        0,
-        50
-      )}...`
+      `✅ Opportunité ajoutée au Google Sheets: ${opportunity.title.substring(0, 50)}...`
     );
     return "added";
   } catch (error) {
@@ -634,7 +584,7 @@ export const addOpportunityToSheet = async (opportunity) => {
   }
 };
 
-export const getNewOpportunities = async (allJobs) => {
+export const getNewOpportunities = async allJobs => {
   try {
     console.log(`🔍 Filtrage de ${allJobs.length} jobs via Google Sheets...`);
 
@@ -649,9 +599,7 @@ export const getNewOpportunities = async (allJobs) => {
       }
     }
 
-    console.log(
-      `📊 ${newOpportunities.length} nouvelles opportunités détectées`
-    );
+    console.log(`📊 ${newOpportunities.length} nouvelles opportunités détectées`);
     return newOpportunities;
   } catch (error) {
     console.error("❌ Erreur filtrage nouvelles opportunités:", error);
@@ -663,15 +611,15 @@ export const getNewOpportunities = async (allJobs) => {
 const ensureOpportunitiesSheetExists = async () => {
   try {
     const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: SPREADSHEET_ID
     });
 
     let opportunitiesSheet = spreadsheet.data.sheets.find(
-      (sheet) => sheet.properties.title === "Opportunities"
+      sheet => sheet.properties.title === "Opportunities"
     );
 
     if (!opportunitiesSheet) {
-      console.log('📄 Création de la feuille "Opportunities"...');
+      console.log("📄 Création de la feuille \"Opportunities\"...");
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
         resource: {
@@ -679,17 +627,17 @@ const ensureOpportunitiesSheetExists = async () => {
             {
               addSheet: {
                 properties: {
-                  title: "Opportunities",
-                },
-              },
-            },
-          ],
-        },
+                  title: "Opportunities"
+                }
+              }
+            }
+          ]
+        }
       });
-      console.log('✅ Feuille "Opportunities" créée');
+      console.log("✅ Feuille \"Opportunities\" créée");
     }
   } catch (error) {
-    console.error('❌ Erreur vérification feuille "Opportunities":', error);
+    console.error("❌ Erreur vérification feuille \"Opportunities\":", error);
   }
 };
 
@@ -719,7 +667,7 @@ export const getSheetStats = async () => {
     console.log("📖 Lecture des données...");
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Opportunities!A:P",
+      range: "Opportunities!A:P"
     });
 
     const rows = response.data.values || [];
@@ -732,7 +680,7 @@ export const getSheetStats = async () => {
         nouveaux: 0,
         priorites: 0,
         sansReponse: 0,
-        categories: {},
+        categories: {}
       };
     }
 
@@ -742,12 +690,11 @@ export const getSheetStats = async () => {
 
     const stats = {
       total: dataRows.length,
-      nouveaux: dataRows.filter((row) => row[9] === "NOUVEAU").length,
-      priorites: dataRows.filter(
-        (row) => row[14] === "HAUTE" || row[14] === "CREATURE DESIGN"
-      ).length,
-      sansReponse: dataRows.filter((row) => !row[11] || row[11] === "").length,
-      categories: {},
+      nouveaux: dataRows.filter(row => row[9] === "NOUVEAU").length,
+      priorites: dataRows.filter(row => row[14] === "HAUTE" || row[14] === "CREATURE DESIGN")
+        .length,
+      sansReponse: dataRows.filter(row => !row[11] || row[11] === "").length,
+      categories: {}
     };
 
     // Compter par catégorie
@@ -767,14 +714,12 @@ export const getSheetStats = async () => {
     console.error("🔍 Détails:", {
       message: error.message,
       code: error.code,
-      status: error.status,
+      status: error.status
     });
 
     // Messages d'aide spécifiques
     if (error.message.includes("Unable to parse range")) {
-      console.log(
-        '💡 La feuille "Opportunities" n\'existe probablement pas encore'
-      );
+      console.log("💡 La feuille \"Opportunities\" n'existe probablement pas encore");
     } else if (error.message.includes("permission")) {
       console.log("💡 Problème de permissions sur le Google Sheet");
     } else if (error.message.includes("not found")) {
@@ -798,7 +743,7 @@ export const getPriorityOpportunities = async () => {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Opportunities!A:P",
+      range: "Opportunities!A:P"
     });
 
     const rows = response.data.values || [];
@@ -808,7 +753,7 @@ export const getPriorityOpportunities = async () => {
 
     // Filtrer les opportunités prioritaires non traitées
     const priorityOps = dataRows
-      .filter((row) => {
+      .filter(row => {
         const priorite = row[14];
         const statut = row[9];
         const reponse = row[11];
@@ -820,7 +765,7 @@ export const getPriorityOpportunities = async () => {
         );
       })
       .slice(0, 10) // Limiter à 10 pour le mail
-      .map((row) => ({
+      .map(row => ({
         titre: row[1],
         subreddit: row[2],
         url: row[3],
@@ -828,7 +773,7 @@ export const getPriorityOpportunities = async () => {
         score: row[5],
         concurrence: row[8],
         priorite: row[14],
-        categorie: row[15],
+        categorie: row[15]
       }));
 
     return priorityOps;
@@ -851,7 +796,7 @@ export const markOpportunityAsProcessed = async (url, statut = "TRAITÉ") => {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Opportunities!A:P",
+      range: "Opportunities!A:P"
     });
 
     const rows = response.data.values || [];
@@ -866,8 +811,8 @@ export const markOpportunityAsProcessed = async (url, statut = "TRAITÉ") => {
           range: range,
           valueInputOption: "RAW",
           resource: {
-            values: [[statut]],
-          },
+            values: [[statut]]
+          }
         });
 
         console.log(`✅ Opportunité marquée comme ${statut}`);
@@ -882,7 +827,7 @@ export const markOpportunityAsProcessed = async (url, statut = "TRAITÉ") => {
   }
 };
 
-export const fetchRedditPostContent = async (url) => {
+export const fetchRedditPostContent = async url => {
   try {
     // Extraire l'ID du post depuis l'URL
     const postIdMatch = url.match(/\/comments\/([a-zA-Z0-9]+)\//);
@@ -898,7 +843,7 @@ export const fetchRedditPostContent = async (url) => {
       clientId: process.env.clientId,
       clientSecret: process.env.clientSecret,
       username: process.env.username,
-      password: process.env.password,
+      password: process.env.password
     });
 
     const submission = await r.getSubmission(postId);
@@ -912,11 +857,9 @@ export const fetchRedditPostContent = async (url) => {
         removed: submission.removed || false,
         locked: submission.locked || false,
         archived: submission.archived || false,
-        author: submission.author
-          ? { name: submission.author.name }
-          : { name: "[deleted]" },
-        removed_by_category: submission.removed_by_category || null,
-      },
+        author: submission.author ? { name: submission.author.name } : { name: "[deleted]" },
+        removed_by_category: submission.removed_by_category || null
+      }
     };
   } catch (error) {
     console.error(`❌ Erreur fetch Reddit ${url}:`, error.message);
@@ -924,7 +867,7 @@ export const fetchRedditPostContent = async (url) => {
       success: false,
       error: error.message,
       // Fallback: utiliser seulement le titre
-      submission: null,
+      submission: null
     };
   }
 };
@@ -944,7 +887,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
     // Récupérer toutes les opportunités avec statut NOUVEAU
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Opportunities!A:P",
+      range: "Opportunities!A:P"
     });
 
     const rows = response.data.values || [];
@@ -961,14 +904,12 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
         openOpportunities.push({
           title: row[1],
           url: row[3],
-          sheetRow: i + 1, // Pour debug
+          sheetRow: i + 1 // Pour debug
         });
       }
     }
 
-    console.log(
-      `🔍 ${openOpportunities.length} opportunités ouvertes à vérifier`
-    );
+    console.log(`🔍 ${openOpportunities.length} opportunités ouvertes à vérifier`);
 
     if (openOpportunities.length === 0) {
       return { success: true, message: "Aucune opportunité ouverte" };
@@ -983,9 +924,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
     // 🆕 VÉRIFIER CHAQUE OPPORTUNITÉ AVEC LE CONTENU REDDIT RÉEL
     for (const opportunity of openOpportunities) {
       try {
-        console.log(
-          `🔍 Vérification: ${opportunity.title.substring(0, 50)}...`
-        );
+        console.log(`🔍 Vérification: ${opportunity.title.substring(0, 50)}...`);
 
         // Récupérer le contenu Reddit en temps réel
         const redditContent = await fetchRedditPostContent(opportunity.url);
@@ -999,9 +938,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
         } else {
           // Fallback: utiliser seulement le titre du Google Sheets
           console.log(
-            `⚠️ Fallback pour: ${opportunity.title.substring(0, 30)}... (${
-              redditContent.error
-            })`
+            `⚠️ Fallback pour: ${opportunity.title.substring(0, 30)}... (${redditContent.error})`
           );
 
           const mockSubmission = {
@@ -1009,7 +946,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
             selftext: "",
             link_flair_text: "",
             removed: false,
-            author: { name: "unknown" },
+            author: { name: "unknown" }
           };
 
           const { detectProjectStatus } = await import("./getReddit.js");
@@ -1033,7 +970,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
               action: "closed",
               reason: statusInfo.reason,
               newStatus: updateResult.newStatus,
-              method: redditContent.success ? "reddit_fetch" : "title_only",
+              method: redditContent.success ? "reddit_fetch" : "title_only"
             });
           }
         } else if (statusInfo.isInProgress) {
@@ -1054,18 +991,15 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
               reason: statusInfo.reason,
               newStatus: updateResult.newStatus,
               updateInfo: statusInfo.updateInfo,
-              method: redditContent.success ? "reddit_fetch" : "title_only",
+              method: redditContent.success ? "reddit_fetch" : "title_only"
             });
           }
         }
 
         // Petite pause pour éviter le rate limiting Reddit
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
-        console.error(
-          `❌ Erreur traitement ${opportunity.title?.substring(0, 30)}:`,
-          error
-        );
+        console.error(`❌ Erreur traitement ${opportunity.title?.substring(0, 30)}:`, error);
         errorCount++;
       }
     }
@@ -1081,7 +1015,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
       updatedCount,
       errorCount,
       totalChecked: openOpportunities.length,
-      details: results,
+      details: results
     };
   } catch (error) {
     console.error("❌ Erreur nettoyage auto amélioré:", error);
@@ -1124,17 +1058,11 @@ export const initSpreadsheet = async () => {
       "GOOGLE_PRIVATE_KEY_ID:",
       process.env.GOOGLE_PRIVATE_KEY_ID ? "DÉFINI" : "❌ MANQUANT"
     );
-    console.log(
-      "GOOGLE_CLIENT_ID:",
-      process.env.GOOGLE_CLIENT_ID ? "DÉFINI" : "❌ MANQUANT"
-    );
+    console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID ? "DÉFINI" : "❌ MANQUANT");
 
     // Test simple de chargement
     const testId = process.env.GOOGLE_SPREADSHEET_ID;
-    console.log(
-      "🧪 Test de chargement SPREADSHEET_ID:",
-      testId ? "OK" : "FAIL"
-    );
+    console.log("🧪 Test de chargement SPREADSHEET_ID:", testId ? "OK" : "FAIL");
 
     const authSuccess = await initGoogleAuth();
     if (authSuccess) {
@@ -1149,7 +1077,7 @@ export const initSpreadsheet = async () => {
     console.log("🔍 Debug supplémentaire:");
     console.log(
       "process.env keys containing GOOGLE:",
-      Object.keys(process.env).filter((key) => key.includes("GOOGLE"))
+      Object.keys(process.env).filter(key => key.includes("GOOGLE"))
     );
 
     return false;

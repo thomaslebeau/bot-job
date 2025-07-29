@@ -1,16 +1,7 @@
 import dotenv from "dotenv";
-import {
-  Client,
-  GatewayIntentBits,
-  EmbedBuilder,
-  ChannelType,
-} from "discord.js";
+import { Client, GatewayIntentBits, EmbedBuilder, ChannelType } from "discord.js";
 import cron from "node-cron";
-import {
-  getReddit,
-  getRedditForced,
-  detectProjectStatus,
-} from "./getReddit.js";
+import { getReddit, getRedditForced, detectProjectStatus } from "./getReddit.js";
 import { generateResponse } from "./responseTemplates.js";
 import {
   addOpportunityToSheet,
@@ -18,15 +9,15 @@ import {
   getNewOpportunities,
   updateOpportunityStatus,
   autoCloseFoundOpportunities,
-  autoCloseFoundOpportunitiesEnhanced,
+  autoCloseFoundOpportunitiesEnhanced
 } from "./googleSheets.js";
-import { sendMorningReport, sendUrgentAlert } from "./emailService.js";
+import { sendMorningReport } from "./emailService.js";
 import {
   analyzeJobWithAI,
   testGroqConnection,
   getGroqUsageStats,
   resetGroqStats,
-  getDailyStatsReport,
+  getDailyStatsReport
 } from "./aiAnalyzer.js";
 
 dotenv.config();
@@ -39,14 +30,14 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-  ],
+    GatewayIntentBits.MessageContent
+  ]
 });
 
 // Configuration des channels
 let channelIds = {
   reddit: null,
-  status: null,
+  status: null
 };
 
 const redditCard = (
@@ -147,7 +138,7 @@ const redditCard = (
       "need",
       "commission",
       "reference",
-      "anatomy",
+      "anatomy"
     ];
 
     for (const sentence of sentences) {
@@ -162,8 +153,7 @@ const redditCard = (
     }
 
     if (keywordSentences.length > 0) {
-      descriptionExtract =
-        "\n📝 *" + keywordSentences[0].substring(0, 120) + "...*";
+      descriptionExtract = "\n📝 *" + keywordSentences[0].substring(0, 120) + "...*";
     }
   }
 
@@ -174,7 +164,7 @@ const redditCard = (
     `${timeEmoji} **Posté:** ${timeText} (${hoursAgo}h)`,
     `${competitionEmoji} **Commentaires:** ${numComments} ${competitionText}`,
     descriptionExtract,
-    `\n[👀 Voir l'annonce complète](${url})`,
+    `\n[👀 Voir l'annonce complète](${url})`
   ]
     .filter(Boolean)
     .join("\n");
@@ -191,15 +181,12 @@ const redditCard = (
 
   return new EmbedBuilder()
     .setColor(cardColor)
-    .setTitle(
-      `${priorityEmoji} ` +
-        (title.length > 160 ? title.substring(0, 160) + "..." : title)
-    )
+    .setTitle(`${priorityEmoji} ` + (title.length > 160 ? title.substring(0, 160) + "..." : title))
     .setURL(url)
     .setDescription(descriptionContent)
     .setTimestamp()
     .setFooter({
-      text: `Reddit • r/${subreddit} • Score: ${relevanceScore} • ${numComments} commentaires`,
+      text: `Reddit • r/${subreddit} • Score: ${relevanceScore} • ${numComments} commentaires`
     });
 };
 
@@ -207,7 +194,7 @@ const statusCard = (message, type = "info") => {
   const colors = {
     info: blue_color,
     success: green_color,
-    error: red_color,
+    error: red_color
   };
 
   return new EmbedBuilder()
@@ -218,20 +205,19 @@ const statusCard = (message, type = "info") => {
 };
 
 // Fonction pour créer les channels nécessaires
-const setupChannels = async (guild) => {
+const setupChannels = async guild => {
   try {
     console.log("🔧 Configuration des channels...");
 
     // Créer la catégorie principale
     let category = guild.channels.cache.find(
-      (c) =>
-        c.name === "🎨 ART JOBS BOT" && c.type === ChannelType.GuildCategory
+      c => c.name === "🎨 ART JOBS BOT" && c.type === ChannelType.GuildCategory
     );
 
     if (!category) {
       category = await guild.channels.create({
         name: "🎨 ART JOBS BOT",
-        type: ChannelType.GuildCategory,
+        type: ChannelType.GuildCategory
       });
       console.log("✅ Catégorie créée");
     }
@@ -239,20 +225,18 @@ const setupChannels = async (guild) => {
     // Créer les channels
     const channelsToCreate = [
       { name: "reddit-art-jobs", key: "reddit", emoji: "🎨" },
-      { name: "bot-status", key: "status", emoji: "📊" },
+      { name: "bot-status", key: "status", emoji: "📊" }
     ];
 
     for (const channelConfig of channelsToCreate) {
-      let channel = guild.channels.cache.find(
-        (c) => c.name === channelConfig.name
-      );
+      let channel = guild.channels.cache.find(c => c.name === channelConfig.name);
 
       if (!channel) {
         channel = await guild.channels.create({
           name: channelConfig.name,
           type: ChannelType.GuildText,
           parent: category.id,
-          topic: `${channelConfig.emoji} Notifications automatiques pour les offres d'art Reddit`,
+          topic: `${channelConfig.emoji} Notifications automatiques pour les offres d'art Reddit`
         });
         console.log(`✅ Channel #${channelConfig.name} créé`);
       }
@@ -268,8 +252,8 @@ const setupChannels = async (guild) => {
           statusCard(
             "🚀 Bot Art Jobs démarré avec succès!\n\n**🐲 SPÉCIALITÉ: CREATURE DESIGN**\n\n**Surveillance Reddit active:**\n• HungryArtists\n• artcommissions\n• starvingartists\n• hireanartist\n\n**Styles ciblés:**\n• Semi-réaliste ✨\n• Stylisé 🎨\n• Concept art 📝\n\n**Nouvelles fonctionnalités:**\n📊 Google Sheets intégré (source unique)\n📧 Rapport matinal à 8h\n🚨 Alertes urgentes\n🔄 Gestion doublons automatique\n\n**Vérification:** Toutes les heures ⏰",
             "success"
-          ),
-        ],
+          )
+        ]
       });
     }
 
@@ -289,7 +273,6 @@ const processOpportunities = async (newJobs, guild) => {
 
   let processedCount = 0;
   let closedCount = 0;
-  let inProgressCount = 0;
 
   for (const job of newJobs) {
     try {
@@ -297,7 +280,7 @@ const processOpportunities = async (newJobs, guild) => {
       const mockSubmission = {
         title: job.title,
         selftext: job.description || "",
-        link_flair_text: job.flair || "",
+        link_flair_text: job.flair || ""
       };
 
       const projectStatus = detectProjectStatus(mockSubmission);
@@ -305,9 +288,7 @@ const processOpportunities = async (newJobs, guild) => {
       // 🆕 VÉRIFIER SI LE PROJET EST SUPPRIMÉ
       if (projectStatus.isDeleted) {
         console.log(
-          `🗑️ Projet supprimé détecté: ${job.title.substring(0, 50)}... (${
-            projectStatus.reason
-          })`
+          `🗑️ Projet supprimé détecté: ${job.title.substring(0, 50)}... (${projectStatus.reason})`
         );
 
         const subredditMatch = job.url.match(/\/r\/([^/]+)\//);
@@ -315,7 +296,7 @@ const processOpportunities = async (newJobs, guild) => {
 
         const opportunityData = {
           ...job,
-          subreddit: subreddit,
+          subreddit: subreddit
         };
 
         const sheetResult = await addOpportunityToSheet(opportunityData);
@@ -337,17 +318,15 @@ const processOpportunities = async (newJobs, guild) => {
               job.description,
               job.numComments,
               job.hoursAgo
-            ).setColor(0x666666), // Gris foncé pour les projets supprimés
-          ],
+            ).setColor(0x666666) // Gris foncé pour les projets supprimés
+          ]
         });
 
-        const deleteReason = projectStatus.details.deletedByUser
-          ? "utilisateur"
-          : "modérateurs";
+        const deleteReason = projectStatus.details.deletedByUser ? "utilisateur" : "modérateurs";
 
         await redditChannel.send(
           `**🗑️ Post supprimé par ${deleteReason}**\n` +
-            `*Opportunité marquée comme supprimée dans Google Sheets*`
+            "*Opportunité marquée comme supprimée dans Google Sheets*"
         );
 
         continue; // Passer au job suivant
@@ -355,9 +334,7 @@ const processOpportunities = async (newJobs, guild) => {
 
       if (projectStatus.isClosed) {
         console.log(
-          `🔒 Projet fermé détecté: ${job.title.substring(0, 50)}... (${
-            projectStatus.reason
-          })`
+          `🔒 Projet fermé détecté: ${job.title.substring(0, 50)}... (${projectStatus.reason})`
         );
 
         // Ajouter à Google Sheets avec statut fermé
@@ -366,7 +343,7 @@ const processOpportunities = async (newJobs, guild) => {
 
         const opportunityData = {
           ...job,
-          subreddit: subreddit,
+          subreddit: subreddit
         };
 
         const sheetResult = await addOpportunityToSheet(opportunityData);
@@ -388,13 +365,13 @@ const processOpportunities = async (newJobs, guild) => {
               job.description,
               job.numComments,
               job.hoursAgo
-            ).setColor(0x888888), // Gris pour les projets fermés
-          ],
+            ).setColor(0x888888) // Gris pour les projets fermés
+          ]
         });
 
         await redditChannel.send(
           `**🔒 Projet fermé détecté** (${projectStatus.reason})\n` +
-            `*Cette opportunité a été automatiquement marquée comme fermée dans Google Sheets*`
+            "*Cette opportunité a été automatiquement marquée comme fermée dans Google Sheets*"
         );
 
         continue; // Passer au job suivant
@@ -403,9 +380,7 @@ const processOpportunities = async (newJobs, guild) => {
       // 🆕 VÉRIFIER SI LE PROJET EST EN COURS DE RÉVISION
       if (projectStatus.isInProgress) {
         console.log(
-          `📋 Projet en cours détecté: ${job.title.substring(0, 50)}... (${
-            projectStatus.reason
-          })`
+          `📋 Projet en cours détecté: ${job.title.substring(0, 50)}... (${projectStatus.reason})`
         );
 
         const subredditMatch = job.url.match(/\/r\/([^/]+)\//);
@@ -413,7 +388,7 @@ const processOpportunities = async (newJobs, guild) => {
 
         const opportunityData = {
           ...job,
-          subreddit: subreddit,
+          subreddit: subreddit
         };
 
         const sheetResult = await addOpportunityToSheet(opportunityData);
@@ -426,7 +401,6 @@ const processOpportunities = async (newJobs, guild) => {
             projectStatus.reason,
             projectStatus.updateInfo
           );
-          inProgressCount++;
         }
 
         // Poster dans Discord avec indication "en cours"
@@ -440,8 +414,8 @@ const processOpportunities = async (newJobs, guild) => {
               job.description,
               job.numComments,
               job.hoursAgo
-            ).setColor(0xffa500), // Orange pour les projets en cours
-          ],
+            ).setColor(0xffa500) // Orange pour les projets en cours
+          ]
         });
 
         // Afficher les infos d'update si disponibles
@@ -449,16 +423,13 @@ const processOpportunities = async (newJobs, guild) => {
 
         if (projectStatus.updateInfo) {
           const info = projectStatus.updateInfo;
-          if (info.timeline)
-            updateMessage += `⏰ **Timeline:** ${info.timeline}\n`;
-          if (info.responseCount)
-            updateMessage += `📊 **Réponses:** ${info.responseCount}\n`;
+          if (info.timeline) updateMessage += `⏰ **Timeline:** ${info.timeline}\n`;
+          if (info.responseCount) updateMessage += `📊 **Réponses:** ${info.responseCount}\n`;
           if (info.stage) updateMessage += `🎯 **Étape:** ${info.stage}\n`;
-          if (info.notes.length > 0)
-            updateMessage += `📝 **Notes:** ${info.notes.join(", ")}\n`;
+          if (info.notes.length > 0) updateMessage += `📝 **Notes:** ${info.notes.join(", ")}\n`;
         }
 
-        updateMessage += `*Opportunité marquée comme "EN_COURS" dans Google Sheets*`;
+        updateMessage += "*Opportunité marquée comme \"EN_COURS\" dans Google Sheets*";
 
         await redditChannel.send(updateMessage);
 
@@ -471,7 +442,7 @@ const processOpportunities = async (newJobs, guild) => {
 
       const opportunityData = {
         ...job,
-        subreddit: subreddit,
+        subreddit: subreddit
       };
 
       const sheetResult = await addOpportunityToSheet(opportunityData);
@@ -490,11 +461,8 @@ const processOpportunities = async (newJobs, guild) => {
     if (statusChannel) {
       await statusChannel.send({
         embeds: [
-          statusCard(
-            `🔒 ${closedCount} projets fermés détectés et marqués automatiquement`,
-            "info"
-          ),
-        ],
+          statusCard(`🔒 ${closedCount} projets fermés détectés et marqués automatiquement`, "info")
+        ]
       });
     }
   }
@@ -534,9 +502,7 @@ client.on("ready", async () => {
       const newOpportunities = await getNewOpportunities(allJobs);
 
       if (newOpportunities.length > 0) {
-        console.log(
-          `📢 ${newOpportunities.length} nouvelles offres détectées!`
-        );
+        console.log(`📢 ${newOpportunities.length} nouvelles offres détectées!`);
 
         let totalProcessed = 0;
 
@@ -551,8 +517,8 @@ client.on("ready", async () => {
                 statusCard(
                   `📊 ${processed} nouvelles offres d'art publiées et ajoutées au Google Sheets`,
                   "success"
-                ),
-              ],
+                )
+              ]
             });
           }
         }
@@ -569,12 +535,7 @@ client.on("ready", async () => {
         const statusChannel = guild.channels.cache.get(channelIds.status);
         if (statusChannel) {
           await statusChannel.send({
-            embeds: [
-              statusCard(
-                `❌ Erreur lors de la recherche Reddit: ${error.message}`,
-                "error"
-              ),
-            ],
+            embeds: [statusCard(`❌ Erreur lors de la recherche Reddit: ${error.message}`, "error")]
           });
         }
       }
@@ -596,12 +557,7 @@ client.on("ready", async () => {
             const statusChannel = guild.channels.cache.get(channelIds.status);
             if (statusChannel) {
               await statusChannel.send({
-                embeds: [
-                  statusCard(
-                    "📧 Rapport matinal envoyé par email avec succès!",
-                    "success"
-                  ),
-                ],
+                embeds: [statusCard("📧 Rapport matinal envoyé par email avec succès!", "success")]
               });
             }
           }
@@ -613,19 +569,14 @@ client.on("ready", async () => {
           const statusChannel = guild.channels.cache.get(channelIds.status);
           if (statusChannel) {
             await statusChannel.send({
-              embeds: [
-                statusCard(
-                  `❌ Erreur envoi rapport matinal: ${error.message}`,
-                  "error"
-                ),
-              ],
+              embeds: [statusCard(`❌ Erreur envoi rapport matinal: ${error.message}`, "error")]
             });
           }
         }
       }
     },
     {
-      timezone: "Europe/Paris",
+      timezone: "Europe/Paris"
     }
   );
 
@@ -644,8 +595,8 @@ client.on("ready", async () => {
                 statusCard(
                   `🧹 Nettoyage automatique: ${result.closedCount} opportunités fermées détectées et mises à jour`,
                   "info"
-                ),
-              ],
+                )
+              ]
             });
           }
         }
@@ -660,175 +611,101 @@ client.on("ready", async () => {
   console.log("📊 Gestion des doublons via Google Sheets");
 });
 
-client.on("messageCreate", async (message) => {
+client.on("messageCreate", async message => {
   if (!message.content.startsWith(PREFIX) || message.author.bot) return;
 
   const input = message.content.slice(PREFIX.length).trim().split(" ");
   const command = input.shift().toLowerCase();
 
   switch (command) {
-    case "ping":
-      message.channel.send("🏓 Pong! Bot en ligne ✅");
-      break;
+  case "ping":
+    message.channel.send("🏓 Pong! Bot en ligne ✅");
+    break;
 
-    case "status":
-      const embed = statusCard(
-        `🤖 **Art Jobs Bot Status**\n\n` +
-          `✅ **Reddit:** Surveillance active\n` +
-          `⏰ **Fréquence:** Toutes les 2 heures\n` +
+  case "status": {
+    const embed = statusCard(
+      "🤖 **Art Jobs Bot Status**\n\n" +
+          "✅ **Reddit:** Surveillance active\n" +
+          "⏰ **Fréquence:** Toutes les 2 heures\n" +
           `📊 **Serveurs:** ${client.guilds.cache.size}\n` +
           `👥 **Utilisateurs:** ${client.users.cache.size}\n\n` +
-          `**Subreddits surveillés:**\n` +
-          `• r/HungryArtists\n` +
-          `• r/artcommissions\n` +
-          `• r/starvingartists\n` +
-          `• r/hireanartist\n\n` +
-          `**Spécialités ciblées:**\n` +
-          `🐲 Creature Design (priorité #1)\n` +
-          `🎨 Character Design\n` +
-          `🎲 D&D/RPG Art\n` +
-          `🎮 Game Art\n` +
-          `🖌️ Style: Semi-réaliste, Stylisé\n\n` +
-          `**Fonctionnalités:**\n` +
-          `📊 Google Sheets (source unique)\n` +
-          `📧 Rapport matinal (8h)\n` +
-          `🚨 Alertes urgentes\n` +
-          `🔄 Anti-doublons intelligent`,
-        "info"
-      );
-      message.channel.send({ embeds: [embed] });
-      break;
+          "**Subreddits surveillés:**\n" +
+          "• r/HungryArtists\n" +
+          "• r/artcommissions\n" +
+          "• r/starvingartists\n" +
+          "• r/hireanartist\n\n" +
+          "**Spécialités ciblées:**\n" +
+          "🐲 Creature Design (priorité #1)\n" +
+          "🎨 Character Design\n" +
+          "🎲 D&D/RPG Art\n" +
+          "🎮 Game Art\n" +
+          "🖌️ Style: Semi-réaliste, Stylisé\n\n" +
+          "**Fonctionnalités:**\n" +
+          "📊 Google Sheets (source unique)\n" +
+          "📧 Rapport matinal (8h)\n" +
+          "🚨 Alertes urgentes\n" +
+          "🔄 Anti-doublons intelligent",
+      "info"
+    );
+    message.channel.send({ embeds: [embed] });
+    break;
+  }
 
-    case "search":
-    case "test":
-      message.channel.send("🔍 Recherche manuelle en cours...");
+  case "search":
+  case "test":
+    message.channel.send("🔍 Recherche manuelle en cours...");
 
-      try {
-        const jobs = await getReddit();
+    try {
+      const jobs = await getReddit();
 
-        if (!jobs || jobs === "error" || jobs.length === 0) {
-          message.channel.send("❌ Aucune offre trouvée ou erreur API");
-          return;
-        }
-
-        console.log(`🔍 ${jobs.length} offres trouvées sur Reddit`);
-
-        // Utiliser la nouvelle fonction pour filtrer via Google Sheets
-        const newOpportunities = await getNewOpportunities(jobs.slice(0, 5)); // Limiter à 5 pour le test
-
-        if (newOpportunities.length > 0) {
-          message.channel.send(
-            `📢 **Test**: ${newOpportunities.length} nouvelles offres trouvées`
-          );
-
-          for (const job of newOpportunities) {
-            const subredditMatch = job.url.match(/\/r\/([^/]+)\//);
-            const subreddit = subredditMatch ? subredditMatch[1] : "unknown";
-
-            const opportunityData = {
-              ...job,
-              subreddit: subreddit,
-            };
-
-            // Ajouter à Google Sheets avec feedback
-            try {
-              const sheetResult = await addOpportunityToSheet(opportunityData);
-
-              switch (sheetResult) {
-                case "added":
-                  message.channel.send(
-                    `✅ Ajouté aux Sheets: ${job.title.substring(0, 40)}...`
-                  );
-                  break;
-                case "duplicate":
-                  message.channel.send(
-                    `⏭️ Déjà en Sheets: ${job.title.substring(0, 40)}...`
-                  );
-                  break;
-                case "error":
-                  message.channel.send(
-                    `❌ Erreur Sheets: ${job.title.substring(0, 40)}...`
-                  );
-                  break;
-                default:
-                  message.channel.send(`⚠️ Statut inconnu: ${sheetResult}`);
-              }
-            } catch (sheetError) {
-              console.error("❌ Erreur Sheets:", sheetError);
-              message.channel.send(
-                `❌ Exception Sheets: ${sheetError.message}`
-              );
-            }
-
-            // Générer réponse suggérée
-            const responseData = generateResponse(
-              job.title.toLowerCase(),
-              0,
-              job.description
-            );
-
-            // Afficher la carte
-            await message.channel.send({
-              embeds: [
-                redditCard(
-                  job.title,
-                  job.url,
-                  subreddit,
-                  job.relevanceScore,
-                  job.description,
-                  job.numComments,
-                  job.hoursAgo
-                ),
-              ],
-            });
-
-            // Proposer une réponse automatique
-            await message.channel.send(
-              `**💬 Réponse suggérée (${responseData.selectedCategory}, budget: $${responseData.detectedBudget}):**\n` +
-                `\`\`\`${responseData.response}\`\`\``
-            );
-
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-          }
-        } else {
-          message.channel.send(
-            "📝 Aucune nouvelle offre pour ce test (toutes déjà en Google Sheets)"
-          );
-        }
-      } catch (error) {
-        message.channel.send(`❌ Erreur durant la recherche: ${error.message}`);
+      if (!jobs || jobs === "error" || jobs.length === 0) {
+        message.channel.send("❌ Aucune offre trouvée ou erreur API");
+        return;
       }
-      break;
 
-    case "force-search":
-      message.channel.send(
-        "🔍 **Recherche FORCÉE** (ignore les doublons) en cours..."
-      );
+      console.log(`🔍 ${jobs.length} offres trouvées sur Reddit`);
 
-      try {
-        const jobs = await getRedditForced();
+      // Utiliser la nouvelle fonction pour filtrer via Google Sheets
+      const newOpportunities = await getNewOpportunities(jobs.slice(0, 5)); // Limiter à 5 pour le test
 
-        if (!jobs || jobs === "error" || jobs.length === 0) {
-          message.channel.send("❌ Aucune offre trouvée même en forçant");
-          return;
-        }
+      if (newOpportunities.length > 0) {
+        message.channel.send(`📢 **Test**: ${newOpportunities.length} nouvelles offres trouvées`);
 
-        message.channel.send(
-          `📢 **Recherche forcée**: ${jobs.length} offres trouvées (peuvent être anciennes)`
-        );
-
-        for (let i = 0; i < Math.min(jobs.length, 5); i++) {
-          const job = jobs[i];
+        for (const job of newOpportunities) {
           const subredditMatch = job.url.match(/\/r\/([^/]+)\//);
           const subreddit = subredditMatch ? subredditMatch[1] : "unknown";
 
-          // Générer réponse suggérée
-          const responseData = generateResponse(
-            job.title.toLowerCase(),
-            0,
-            job.description
-          );
+          const opportunityData = {
+            ...job,
+            subreddit: subreddit
+          };
 
+          // Ajouter à Google Sheets avec feedback
+          try {
+            const sheetResult = await addOpportunityToSheet(opportunityData);
+
+            switch (sheetResult) {
+            case "added":
+              message.channel.send(`✅ Ajouté aux Sheets: ${job.title.substring(0, 40)}...`);
+              break;
+            case "duplicate":
+              message.channel.send(`⏭️ Déjà en Sheets: ${job.title.substring(0, 40)}...`);
+              break;
+            case "error":
+              message.channel.send(`❌ Erreur Sheets: ${job.title.substring(0, 40)}...`);
+              break;
+            default:
+              message.channel.send(`⚠️ Statut inconnu: ${sheetResult}`);
+            }
+          } catch (sheetError) {
+            console.error("❌ Erreur Sheets:", sheetError);
+            message.channel.send(`❌ Exception Sheets: ${sheetError.message}`);
+          }
+
+          // Générer réponse suggérée
+          const responseData = generateResponse(job.title.toLowerCase(), 0, job.description);
+
+          // Afficher la carte
           await message.channel.send({
             embeds: [
               redditCard(
@@ -839,94 +716,145 @@ client.on("messageCreate", async (message) => {
                 job.description,
                 job.numComments,
                 job.hoursAgo
-              ),
-            ],
+              )
+            ]
           });
 
+          // Proposer une réponse automatique
           await message.channel.send(
             `**💬 Réponse suggérée (${responseData.selectedCategory}, budget: $${responseData.detectedBudget}):**\n` +
-              `\`\`\`${responseData.response}\`\`\``
+                `\`\`\`${responseData.response}\`\`\``
           );
 
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-      } catch (error) {
+      } else {
         message.channel.send(
-          `❌ Erreur durant la recherche forcée: ${error.message}`
+          "📝 Aucune nouvelle offre pour ce test (toutes déjà en Google Sheets)"
         );
       }
-      break;
+    } catch (error) {
+      message.channel.send(`❌ Erreur durant la recherche: ${error.message}`);
+    }
+    break;
 
-    case "test-email":
-      message.channel.send("📧 Test d'envoi du rapport matinal...");
+  case "force-search":
+    message.channel.send("🔍 **Recherche FORCÉE** (ignore les doublons) en cours...");
 
-      try {
-        const success = await sendMorningReport();
-        if (success) {
-          message.channel.send(
-            "✅ Rapport matinal testé avec succès! Vérifiez votre email."
-          );
-        } else {
-          message.channel.send("❌ Erreur lors du test d'email");
-        }
-      } catch (error) {
-        message.channel.send(`❌ Erreur test email: ${error.message}`);
+    try {
+      const jobs = await getRedditForced();
+
+      if (!jobs || jobs === "error" || jobs.length === 0) {
+        message.channel.send("❌ Aucune offre trouvée même en forçant");
+        return;
       }
-      break;
 
-    case "test-sheets":
-      message.channel.send("📊 Test de connexion Google Sheets...");
+      message.channel.send(
+        `📢 **Recherche forcée**: ${jobs.length} offres trouvées (peuvent être anciennes)`
+      );
 
-      try {
-        const success = await initSpreadsheet();
-        if (success) {
-          message.channel.send("✅ Google Sheets connecté avec succès!");
-        } else {
-          message.channel.send("❌ Erreur connexion Google Sheets");
-        }
-      } catch (error) {
-        message.channel.send(`❌ Erreur test Sheets: ${error.message}`);
+      for (let i = 0; i < Math.min(jobs.length, 5); i++) {
+        const job = jobs[i];
+        const subredditMatch = job.url.match(/\/r\/([^/]+)\//);
+        const subreddit = subredditMatch ? subredditMatch[1] : "unknown";
+
+        // Générer réponse suggérée
+        const responseData = generateResponse(job.title.toLowerCase(), 0, job.description);
+
+        await message.channel.send({
+          embeds: [
+            redditCard(
+              job.title,
+              job.url,
+              subreddit,
+              job.relevanceScore,
+              job.description,
+              job.numComments,
+              job.hoursAgo
+            )
+          ]
+        });
+
+        await message.channel.send(
+          `**💬 Réponse suggérée (${responseData.selectedCategory}, budget: $${responseData.detectedBudget}):**\n` +
+              `\`\`\`${responseData.response}\`\`\``
+        );
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-      break;
+    } catch (error) {
+      message.channel.send(`❌ Erreur durant la recherche forcée: ${error.message}`);
+    }
+    break;
 
-    case "stats":
-      message.channel.send("📊 Récupération des statistiques Google Sheets...");
+  case "test-email":
+    message.channel.send("📧 Test d'envoi du rapport matinal...");
 
-      try {
-        const { getSheetStats } = await import("./googleSheets.js");
-        const stats = await getSheetStats();
+    try {
+      const success = await sendMorningReport();
+      if (success) {
+        message.channel.send("✅ Rapport matinal testé avec succès! Vérifiez votre email.");
+      } else {
+        message.channel.send("❌ Erreur lors du test d'email");
+      }
+    } catch (error) {
+      message.channel.send(`❌ Erreur test email: ${error.message}`);
+    }
+    break;
 
-        if (stats) {
-          const statsEmbed = new EmbedBuilder()
-            .setColor(blue_color)
-            .setTitle("📊 Statistiques Google Sheets")
-            .setDescription(
-              `**📈 Total Opportunités:** ${stats.total}\n` +
+  case "test-sheets":
+    message.channel.send("📊 Test de connexion Google Sheets...");
+
+    try {
+      const success = await initSpreadsheet();
+      if (success) {
+        message.channel.send("✅ Google Sheets connecté avec succès!");
+      } else {
+        message.channel.send("❌ Erreur connexion Google Sheets");
+      }
+    } catch (error) {
+      message.channel.send(`❌ Erreur test Sheets: ${error.message}`);
+    }
+    break;
+
+  case "stats":
+    message.channel.send("📊 Récupération des statistiques Google Sheets...");
+
+    try {
+      const { getSheetStats } = await import("./googleSheets.js");
+      const stats = await getSheetStats();
+
+      if (stats) {
+        const statsEmbed = new EmbedBuilder()
+          .setColor(blue_color)
+          .setTitle("📊 Statistiques Google Sheets")
+          .setDescription(
+            `**📈 Total Opportunités:** ${stats.total}\n` +
                 `**🆕 Nouvelles:** ${stats.nouveaux}\n` +
                 `**⭐ Prioritaires:** ${stats.priorites}\n` +
                 `**📝 Sans Réponse:** ${stats.sansReponse}\n\n` +
-                `**📋 Par Catégorie:**\n` +
+                "**📋 Par Catégorie:**\n" +
                 Object.entries(stats.categories)
                   .map(([cat, count]) => `• ${cat}: ${count}`)
                   .join("\n")
-            )
-            .setTimestamp();
+          )
+          .setTimestamp();
 
-          message.channel.send({ embeds: [statsEmbed] });
-        } else {
-          message.channel.send("❌ Impossible de récupérer les statistiques");
-        }
-      } catch (error) {
-        message.channel.send(`❌ Erreur stats: ${error.message}`);
+        message.channel.send({ embeds: [statsEmbed] });
+      } else {
+        message.channel.send("❌ Impossible de récupérer les statistiques");
       }
-      break;
+    } catch (error) {
+      message.channel.send(`❌ Erreur stats: ${error.message}`);
+    }
+    break;
 
-    case "help":
-      const helpEmbed = new EmbedBuilder()
-        .setColor(blue_color)
-        .setTitle("🤖 Commandes Art Jobs Bot")
-        .setDescription(
-          `**${PREFIX}ping** - Test de connexion\n` +
+  case "help": {
+    const helpEmbed = new EmbedBuilder()
+      .setColor(blue_color)
+      .setTitle("🤖 Commandes Art Jobs Bot")
+      .setDescription(
+        `**${PREFIX}ping** - Test de connexion\n` +
             `**${PREFIX}status** - Statut détaillé du bot\n` +
             `**${PREFIX}search** ou **${PREFIX}test** - Recherche manuelle\n` +
             `**${PREFIX}force-search** - Recherche forcée (ignore doublons)\n` +
@@ -934,83 +862,83 @@ client.on("messageCreate", async (message) => {
             `**${PREFIX}test-email** - Test rapport email\n` +
             `**${PREFIX}test-sheets** - Test connexion Google Sheets\n` +
             `**${PREFIX}help** - Cette aide\n\n` +
-            `🔄 **Surveillance automatique** toutes les 2 heures\n` +
-            `📧 **Rapport matinal** tous les jours à 8h\n` +
-            `📊 **Google Sheets** source unique de vérité\n` +
-            `🚨 **Alertes urgentes** par email\n` +
-            `🔄 **Anti-doublons** automatique`
-        )
-        .setFooter({
-          text: "Bot développé pour maximiser vos opportunités en creature design",
-        })
-        .setTimestamp();
+            "🔄 **Surveillance automatique** toutes les 2 heures\n" +
+            "📧 **Rapport matinal** tous les jours à 8h\n" +
+            "📊 **Google Sheets** source unique de vérité\n" +
+            "🚨 **Alertes urgentes** par email\n" +
+            "🔄 **Anti-doublons** automatique"
+      )
+      .setFooter({
+        text: "Bot développé pour maximiser vos opportunités en creature design"
+      })
+      .setTimestamp();
 
-      message.channel.send({ embeds: [helpEmbed] });
-      break;
-    case "test-ai":
-      message.channel.send("🚀 Test de l'IA Groq...");
+    message.channel.send({ embeds: [helpEmbed] });
+    break;
+  }
+  case "test-ai":
+    message.channel.send("🚀 Test de l'IA Groq...");
 
-      try {
-        const success = await testGroqConnection();
-        if (success) {
-          message.channel.send("✅ Connexion Groq OK! Test d'analyse...");
+    try {
+      const success = await testGroqConnection();
+      if (success) {
+        message.channel.send("✅ Connexion Groq OK! Test d'analyse...");
 
-          const testJob = {
-            title:
-              "[HIRING] Looking for creature design for D&D campaign - $500 budget",
-            description:
+        const testJob = {
+          title: "[HIRING] Looking for creature design for D&D campaign - $500 budget",
+          description:
               "Need original monster designs for my homebrew campaign. Semi-realistic style preferred. Looking for 5 unique creatures with reference sheets and lore descriptions.",
-            subreddit: "HungryArtists",
-            relevanceScore: 22,
-          };
+          subreddit: "HungryArtists",
+          relevanceScore: 22
+        };
 
-          const analysis = await analyzeJobWithAI(testJob);
+        const analysis = await analyzeJobWithAI(testJob);
 
-          message.channel.send(
-            `**🤖 Résultat test IA:**\n\`\`\`${analysis.response}\`\`\`\n` +
+        message.channel.send(
+          `**🤖 Résultat test IA:**\n\`\`\`${analysis.response}\`\`\`\n` +
               `*✅ Succès: ${analysis.success ? "Oui" : "Non"} | ⚡ ${
                 analysis.metadata.provider
               } | 🕐 ${analysis.metadata.responseTime}ms | 📊 Qualité: ${
                 analysis.analysis.qualityScore
               }/10*`
-          );
-        } else {
-          message.channel.send(
-            "❌ Impossible de se connecter à Groq. Vérifiez votre GROQ_API_KEY."
-          );
-        }
-      } catch (error) {
-        message.channel.send(`❌ Erreur test IA: ${error.message}`);
+        );
+      } else {
+        message.channel.send(
+          "❌ Impossible de se connecter à Groq. Vérifiez votre GROQ_API_KEY."
+        );
       }
-      break;
+    } catch (error) {
+      message.channel.send(`❌ Erreur test IA: ${error.message}`);
+    }
+    break;
 
-    case "ai-stats":
-      message.channel.send("📊 Récupération des statistiques Groq...");
+  case "ai-stats":
+    message.channel.send("📊 Récupération des statistiques Groq...");
 
-      try {
-        const stats = getGroqUsageStats();
+    try {
+      const stats = getGroqUsageStats();
 
-        const statsEmbed = new EmbedBuilder()
-          .setColor(blue_color)
-          .setTitle("📊 Statistiques Groq IA")
-          .setDescription(
-            `**🔢 Utilisation Globale:**\n` +
+      const statsEmbed = new EmbedBuilder()
+        .setColor(blue_color)
+        .setTitle("📊 Statistiques Groq IA")
+        .setDescription(
+          "**🔢 Utilisation Globale:**\n" +
               `• Total requêtes: ${stats.totalRequests}\n` +
               `• Succès: ${stats.successfulRequests} (${stats.successRate}%)\n` +
               `• Échecs: ${stats.failedRequests}\n\n` +
-              `**🪙 Tokens:**\n` +
+              "**🪙 Tokens:**\n" +
               `• Total consommé: ${stats.totalTokens.toLocaleString()}\n` +
               `• Moyenne/requête: ${stats.averageTokensPerRequest}\n` +
               `• Vitesse: ${stats.tokensPerMinute}/min\n\n` +
-              `**⚡ Performance:**\n` +
+              "**⚡ Performance:**\n" +
               `• Temps moyen: ${stats.averageResponseTime}ms\n` +
               `• Uptime: ${stats.uptimeHours}h\n\n` +
               `**📅 Aujourd'hui (${stats.today.date}):**\n` +
               `• Requêtes: ${stats.today.requests}\n` +
               `• Tokens: ${stats.today.tokens}\n` +
               `• Succès: ${stats.today.successes}/${stats.today.requests} (${stats.today.successRate}%)\n\n` +
-              `**🚦 Limites Groq:**\n` +
-              `• Limite: 6000 tokens/min\n` +
+              "**🚦 Limites Groq:**\n" +
+              "• Limite: 6000 tokens/min\n" +
               `• Utilisation: ${stats.tokensPerMinute}/min\n` +
               `• Disponible: ~${stats.groqLimits.remainingEstimate} tokens/min\n` +
               `${
@@ -1018,193 +946,180 @@ client.on("messageCreate", async (message) => {
                   ? "⚠️ **Proche de la limite !**"
                   : "✅ **Marge confortable**"
               }\n\n` +
-              `**💰 Coût:** $0.00 (Groq = Gratuit! 🎉)`
-          )
-          .setTimestamp()
-          .setFooter({
-            text: "Stats en temps réel • Se remet à zéro au redémarrage",
-          });
+              "**💰 Coût:** $0.00 (Groq = Gratuit! 🎉)"
+        )
+        .setTimestamp()
+        .setFooter({
+          text: "Stats en temps réel • Se remet à zéro au redémarrage"
+        });
 
-        // Ajouter les erreurs si il y en a
-        if (Object.keys(stats.errorTypes).length > 0) {
-          const errorsList = Object.entries(stats.errorTypes)
-            .map(([error, count]) => `• ${error}: ${count}x`)
-            .join("\n");
-          statsEmbed.addFields({
-            name: "❌ Erreurs",
-            value: errorsList,
-            inline: false,
-          });
-        }
-
-        message.channel.send({ embeds: [statsEmbed] });
-      } catch (error) {
-        message.channel.send(`❌ Erreur récupération stats: ${error.message}`);
+      // Ajouter les erreurs si il y en a
+      if (Object.keys(stats.errorTypes).length > 0) {
+        const errorsList = Object.entries(stats.errorTypes)
+          .map(([error, count]) => `• ${error}: ${count}x`)
+          .join("\n");
+        statsEmbed.addFields({
+          name: "❌ Erreurs",
+          value: errorsList,
+          inline: false
+        });
       }
-      break;
 
-    case "ai-reset-stats":
-      message.channel.send("🔄 Réinitialisation des statistiques Groq...");
-      try {
-        resetGroqStats();
-        message.channel.send("✅ Statistiques réinitialisées !");
-      } catch (error) {
-        message.channel.send(`❌ Erreur reset: ${error.message}`);
-      }
-      break;
+      message.channel.send({ embeds: [statsEmbed] });
+    } catch (error) {
+      message.channel.send(`❌ Erreur récupération stats: ${error.message}`);
+    }
+    break;
 
-    case "ai-daily":
-      message.channel.send("📅 Rapport quotidien...");
-      try {
-        const report = getDailyStatsReport();
-        message.channel.send(report);
-      } catch (error) {
-        message.channel.send(`❌ Erreur rapport: ${error.message}`);
-      }
-      break;
+  case "ai-reset-stats":
+    message.channel.send("🔄 Réinitialisation des statistiques Groq...");
+    try {
+      resetGroqStats();
+      message.channel.send("✅ Statistiques réinitialisées !");
+    } catch (error) {
+      message.channel.send(`❌ Erreur reset: ${error.message}`);
+    }
+    break;
 
-    case "check-closed":
-      message.channel.send("🔍 Vérification des projets fermés...");
+  case "ai-daily":
+    message.channel.send("📅 Rapport quotidien...");
+    try {
+      const report = getDailyStatsReport();
+      message.channel.send(report);
+    } catch (error) {
+      message.channel.send(`❌ Erreur rapport: ${error.message}`);
+    }
+    break;
 
-      try {
-        const result = await autoCloseFoundOpportunities();
+  case "check-closed":
+    message.channel.send("🔍 Vérification des projets fermés...");
 
-        if (result.success) {
-          if (result.closedCount > 0 || result.inProgressCount > 0) {
-            let message = `✅ **Nettoyage terminé!**\n`;
-            if (result.closedCount > 0) {
-              message += `🔒 ${result.closedCount} opportunités fermées détectées\n`;
-            }
-            if (result.inProgressCount > 0) {
-              message += `📋 ${result.inProgressCount} opportunités en cours détectées\n`;
-            }
-            message += `📊 Statuts mis à jour dans Google Sheets`;
+    try {
+      const result = await autoCloseFoundOpportunities();
 
-            message.channel.send(message);
-
-            // Afficher les détails si pas trop nombreux
-            if (result.details && result.details.length <= 5) {
-              for (const detail of result.details) {
-                let emoji = detail.action === "closed" ? "🔒" : "📋";
-                let actionText =
-                  detail.action === "closed" ? "Fermé" : "En cours";
-
-                message.channel.send(
-                  `${emoji} **${actionText}:** ${detail.title.substring(
-                    0,
-                    50
-                  )}...\n` +
-                    `**Raison:** ${detail.reason}\n` +
-                    `**Nouveau statut:** ${detail.newStatus}`
-                );
-              }
-            }
-          } else {
-            message.channel.send(
-              "✅ Aucune opportunité fermée ou en cours détectée"
-            );
-          }
-        } else {
-          message.channel.send(`❌ Erreur: ${result.error}`);
-        }
-      } catch (error) {
-        message.channel.send(`❌ Erreur vérification: ${error.message}`);
-      }
-      break;
-
-    case "test-closed":
-      const testUrl = "https://reddit.com/test";
-      const testTitles = [
-        "Looking for artist - FOUND thanks everyone!",
-        "[HIRING] Character design needed - $300",
-        "Need creature art [FILLED]",
-        "Artist wanted for game (EDIT: Found someone, thanks!)",
-      ];
-
-      message.channel.send("🧪 Test détection projets fermés...\n");
-
-      for (const title of testTitles) {
-        const mockSubmission = {
-          title: title,
-          selftext: "",
-          link_flair_text: "",
-        };
-
-        const status = detectProjectStatus(mockSubmission);
-        const result = status.isClosed ? "🔒 FERMÉ" : "✅ OUVERT";
-
-        message.channel.send(
-          `${result} "${title}"\n` + `Raison: ${status.reason}`
-        );
-      }
-      break;
-
-    case "check-closed-deep":
-      message.channel.send(
-        "🔍 Vérification APPROFONDIE des projets fermés (avec fetch Reddit)..."
-      );
-
-      try {
-        const result = await autoCloseFoundOpportunitiesEnhanced();
-
-        if (result.success) {
-          let statusMessage = `✅ **Nettoyage approfondi terminé!**\n`;
-          statusMessage += `📊 **Total vérifié:** ${result.totalChecked}\n`;
-
+      if (result.success) {
+        if (result.closedCount > 0 || result.inProgressCount > 0) {
+          let message = "✅ **Nettoyage terminé!**\n";
           if (result.closedCount > 0) {
-            statusMessage += `🔒 **Fermés:** ${result.closedCount}\n`;
+            message += `🔒 ${result.closedCount} opportunités fermées détectées\n`;
           }
           if (result.inProgressCount > 0) {
-            statusMessage += `📋 **En cours:** ${result.inProgressCount}\n`;
+            message += `📋 ${result.inProgressCount} opportunités en cours détectées\n`;
           }
-          if (result.errorCount > 0) {
-            statusMessage += `❌ **Erreurs:** ${result.errorCount}\n`;
-          }
+          message += "📊 Statuts mis à jour dans Google Sheets";
 
-          message.channel.send(statusMessage);
+          message.channel.send(message);
 
-          // Afficher les détails
-          if (result.details && result.details.length > 0) {
-            for (const detail of result.details.slice(0, 5)) {
-              // Limiter à 5
-              const emoji = detail.action === "closed" ? "🔒" : "📋";
-              const method =
-                detail.method === "reddit_fetch" ? "🌐 Reddit" : "📋 Titre";
+          // Afficher les détails si pas trop nombreux
+          if (result.details && result.details.length <= 5) {
+            for (const detail of result.details) {
+              let emoji = detail.action === "closed" ? "🔒" : "📋";
+              let actionText = detail.action === "closed" ? "Fermé" : "En cours";
 
               message.channel.send(
-                `${emoji} **${detail.title.substring(0, 40)}...**\n` +
-                  `└ ${detail.newStatus} (${method})`
-              );
-            }
-
-            if (result.details.length > 5) {
-              message.channel.send(
-                `... et ${result.details.length - 5} autres mises à jour`
+                `${emoji} **${actionText}:** ${detail.title.substring(0, 50)}...\n` +
+                    `**Raison:** ${detail.reason}\n` +
+                    `**Nouveau statut:** ${detail.newStatus}`
               );
             }
           }
         } else {
-          message.channel.send(`❌ Erreur: ${result.error}`);
+          message.channel.send("✅ Aucune opportunité fermée ou en cours détectée");
         }
-      } catch (error) {
-        message.channel.send(`❌ Erreur vérification: ${error.message}`);
+      } else {
+        message.channel.send(`❌ Erreur: ${result.error}`);
       }
-      break;
+    } catch (error) {
+      message.channel.send(`❌ Erreur vérification: ${error.message}`);
+    }
+    break;
 
-    default:
-      message.channel.send(
-        "❓ Commande inconnue. Utilisez `!!help` pour voir les commandes disponibles."
-      );
-      break;
+  case "test-closed": {
+    const testTitles = [
+      "Looking for artist - FOUND thanks everyone!",
+      "[HIRING] Character design needed - $300",
+      "Need creature art [FILLED]",
+      "Artist wanted for game (EDIT: Found someone, thanks!)"
+    ];
+
+    message.channel.send("🧪 Test détection projets fermés...\n");
+
+    for (const title of testTitles) {
+      const mockSubmission = {
+        title: title,
+        selftext: "",
+        link_flair_text: ""
+      };
+
+      const status = detectProjectStatus(mockSubmission);
+      const result = status.isClosed ? "🔒 FERMÉ" : "✅ OUVERT";
+
+      message.channel.send(`${result} "${title}"\n` + `Raison: ${status.reason}`);
+    }
+    break;
+  }
+
+  case "check-closed-deep":
+    message.channel.send("🔍 Vérification APPROFONDIE des projets fermés (avec fetch Reddit)...");
+
+    try {
+      const result = await autoCloseFoundOpportunitiesEnhanced();
+
+      if (result.success) {
+        let statusMessage = "✅ **Nettoyage approfondi terminé!**\n";
+        statusMessage += `📊 **Total vérifié:** ${result.totalChecked}\n`;
+
+        if (result.closedCount > 0) {
+          statusMessage += `🔒 **Fermés:** ${result.closedCount}\n`;
+        }
+        if (result.inProgressCount > 0) {
+          statusMessage += `📋 **En cours:** ${result.inProgressCount}\n`;
+        }
+        if (result.errorCount > 0) {
+          statusMessage += `❌ **Erreurs:** ${result.errorCount}\n`;
+        }
+
+        message.channel.send(statusMessage);
+
+        // Afficher les détails
+        if (result.details && result.details.length > 0) {
+          for (const detail of result.details.slice(0, 5)) {
+            // Limiter à 5
+            const emoji = detail.action === "closed" ? "🔒" : "📋";
+            const method = detail.method === "reddit_fetch" ? "🌐 Reddit" : "📋 Titre";
+
+            message.channel.send(
+              `${emoji} **${detail.title.substring(0, 40)}...**\n` +
+                  `└ ${detail.newStatus} (${method})`
+            );
+          }
+
+          if (result.details.length > 5) {
+            message.channel.send(`... et ${result.details.length - 5} autres mises à jour`);
+          }
+        }
+      } else {
+        message.channel.send(`❌ Erreur: ${result.error}`);
+      }
+    } catch (error) {
+      message.channel.send(`❌ Erreur vérification: ${error.message}`);
+    }
+    break;
+
+  default:
+    message.channel.send(
+      "❓ Commande inconnue. Utilisez `!!help` pour voir les commandes disponibles."
+    );
+    break;
   }
 });
 
 // Gestion des erreurs
-client.on("error", (error) => {
+client.on("error", error => {
   console.error("❌ Erreur Discord:", error);
 });
 
-process.on("unhandledRejection", (error) => {
+process.on("unhandledRejection", error => {
   console.error("❌ Erreur non gérée:", error);
 });
 

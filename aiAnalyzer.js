@@ -1,7 +1,7 @@
 import Groq from "groq-sdk";
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY
 });
 
 // Votre profil artistique - PERSONNALISEZ CES INFORMATIONS
@@ -14,7 +14,7 @@ const ARTIST_PROFILE = {
     "D&D/RPG Art",
     "Semi-realistic art",
     "Stylized illustrations",
-    "Fantasy concept art",
+    "Fantasy concept art"
   ],
   styles: [
     "Semi-realistic",
@@ -23,7 +23,7 @@ const ARTIST_PROFILE = {
     "Concept art",
     "Digital painting",
     "Dark fantasy",
-    "Painterly style",
+    "Painterly style"
   ],
   // 🔧 EXPÉRIENCE PLUS GÉNÉRALE ET VRAIE
   experience: [
@@ -32,7 +32,7 @@ const ARTIST_PROFILE = {
     "Monster and creature concepts",
     "Semi-realistic and stylized art",
     "Fantasy illustration work",
-    "Concept art development",
+    "Concept art development"
   ],
   portfolio: process.env.PORTFOLIO_URL || "https://votre-portfolio.com",
 
@@ -42,22 +42,16 @@ const ARTIST_PROFILE = {
     "Character illustrations for fantasy settings",
     "Monster and beast designs",
     "Semi-realistic digital art",
-    "Stylized fantasy illustrations",
-  ],
+    "Stylized fantasy illustrations"
+  ]
 };
 
 // Template de prompt optimisé pour Groq
-const createAnalysisPrompt = (
-  title,
-  description,
-  subreddit,
-  budget,
-  relevanceScore
-) => {
+const createAnalysisPrompt = (title, description, subreddit, budget, relevanceScore) => {
   // Détecter la langue du post
   const fullText = title + " " + description;
   const isEnglish =
-    /^[\x00-\x7F]*$/.test(fullText) ||
+    /^[ -~]*$/.test(fullText) ||
     fullText.toLowerCase().includes("looking for") ||
     fullText.toLowerCase().includes("need") ||
     fullText.toLowerCase().includes("hiring");
@@ -70,8 +64,8 @@ const createAnalysisPrompt = (
     relevanceScore >= 18
       ? "HIGH PRIORITY"
       : relevanceScore >= 15
-      ? "MEDIUM PRIORITY"
-      : "STANDARD PRIORITY";
+        ? "MEDIUM PRIORITY"
+        : "STANDARD PRIORITY";
 
   return `You are writing a professional response for ${ARTIST_PROFILE.name}, a creature design and character design specialist.
 
@@ -156,28 +150,13 @@ Generate ONLY the response, no explanation.`;
 const analyzeProjectType = (title, description) => {
   const text = (title + " " + description).toLowerCase();
 
-  if (
-    text.includes("creature") ||
-    text.includes("monster") ||
-    text.includes("beast")
-  ) {
+  if (text.includes("creature") || text.includes("monster") || text.includes("beast")) {
     return "Creature Design";
-  } else if (
-    text.includes("character") &&
-    (text.includes("design") || text.includes("concept"))
-  ) {
+  } else if (text.includes("character") && (text.includes("design") || text.includes("concept"))) {
     return "Character Design";
-  } else if (
-    text.includes("dnd") ||
-    text.includes("d&d") ||
-    text.includes("pathfinder")
-  ) {
+  } else if (text.includes("dnd") || text.includes("d&d") || text.includes("pathfinder")) {
     return "D&D/RPG Commission";
-  } else if (
-    text.includes("board game") ||
-    text.includes("card game") ||
-    text.includes("tcg")
-  ) {
+  } else if (text.includes("board game") || text.includes("card game") || text.includes("tcg")) {
     return "Game Art Commission";
   } else if (text.includes("illustration") || text.includes("artwork")) {
     return "Fantasy Illustration";
@@ -196,7 +175,7 @@ const determineSpecialtyMatch = (title, description) => {
     "Character Design": 0,
     "D&D/RPG Art": 0,
     "Game Art": 0,
-    "Fantasy Illustration": 0,
+    "Fantasy Illustration": 0
   };
 
   // Mots-clés pour creature design
@@ -207,40 +186,27 @@ const determineSpecialtyMatch = (title, description) => {
     "dragon",
     "demon",
     "familiar",
-    "companion",
+    "companion"
   ];
-  creatureKeywords.forEach((keyword) => {
+  creatureKeywords.forEach(keyword => {
     if (text.includes(keyword)) specialtyScores["Creature Design"] += 3;
   });
 
   // Mots-clés pour character design
-  const characterKeywords = [
-    "character",
-    "portrait",
-    "person",
-    "hero",
-    "protagonist",
-  ];
-  characterKeywords.forEach((keyword) => {
+  const characterKeywords = ["character", "portrait", "person", "hero", "protagonist"];
+  characterKeywords.forEach(keyword => {
     if (text.includes(keyword)) specialtyScores["Character Design"] += 2;
   });
 
   // Mots-clés pour D&D/RPG
-  const dndKeywords = [
-    "dnd",
-    "d&d",
-    "pathfinder",
-    "rpg",
-    "campaign",
-    "homebrew",
-  ];
-  dndKeywords.forEach((keyword) => {
+  const dndKeywords = ["dnd", "d&d", "pathfinder", "rpg", "campaign", "homebrew"];
+  dndKeywords.forEach(keyword => {
     if (text.includes(keyword)) specialtyScores["D&D/RPG Art"] += 3;
   });
 
   // Mots-clés pour game art
   const gameKeywords = ["game", "board", "card", "tcg", "kickstarter"];
-  gameKeywords.forEach((keyword) => {
+  gameKeywords.forEach(keyword => {
     if (text.includes(keyword)) specialtyScores["Game Art"] += 2;
   });
 
@@ -253,7 +219,7 @@ const determineSpecialtyMatch = (title, description) => {
 };
 
 // Suggérer la section portfolio pertinente
-const suggestRelevantPortfolioSection = (title) => {
+const suggestRelevantPortfolioSection = title => {
   const titleLower = title.toLowerCase();
 
   const portfolioSections = {
@@ -261,11 +227,11 @@ const suggestRelevantPortfolioSection = (title) => {
     "character-design": ["character", "portrait", "person"],
     "dnd-rpg": ["dnd", "d&d", "rpg", "pathfinder", "campaign"],
     "game-art": ["game", "card", "board", "tcg"],
-    "fantasy-illustrations": ["fantasy", "medieval", "magic", "illustration"],
+    "fantasy-illustrations": ["fantasy", "medieval", "magic", "illustration"]
   };
 
   for (const [section, keywords] of Object.entries(portfolioSections)) {
-    if (keywords.some((keyword) => titleLower.includes(keyword))) {
+    if (keywords.some(keyword => titleLower.includes(keyword))) {
       return section;
     }
   }
@@ -350,7 +316,7 @@ const analyzeProvidedInfo = (title, description) => {
       text.includes("black and white") ||
       text.includes("b&w") ||
       text.includes("full color") ||
-      text.includes("monochrome"),
+      text.includes("monochrome")
   };
 };
 
@@ -361,50 +327,29 @@ const getValueAddingQuestion = (title, description, projectType) => {
   // Questions techniques spécifiques selon le type de projet (en évitant les redondances)
   let questions = [];
 
-  if (
-    projectType.includes("Game") ||
-    text.includes("card") ||
-    text.includes("board")
-  ) {
-    if (!provided.hasFormat)
-      questions.push("Do you need print-ready files or just digital?");
+  if (projectType.includes("Game") || text.includes("card") || text.includes("board")) {
+    if (!provided.hasFormat) questions.push("Do you need print-ready files or just digital?");
     if (!provided.hasSize) questions.push("What's the final card size?");
     if (!provided.hasUsage)
-      questions.push(
-        "What's the final usage - cards, tokens, or illustrations?"
-      );
+      questions.push("What's the final usage - cards, tokens, or illustrations?");
   }
 
   if (projectType.includes("Character") || text.includes("character")) {
     if (!provided.hasAngles)
-      questions.push(
-        "Are you looking for full illustrations or more token-style?"
-      );
+      questions.push("Are you looking for full illustrations or more token-style?");
     if (!provided.hasReferences)
       questions.push("Do you have reference sheets or descriptions ready?");
     if (!provided.hasQuantity) questions.push("How many characters total?");
   }
 
-  if (
-    projectType.includes("Creature") ||
-    text.includes("creature") ||
-    text.includes("monster")
-  ) {
-    if (!provided.hasAngles)
-      questions.push("How detailed do the anatomy references need to be?");
-    if (!provided.hasAngles)
-      questions.push("Multiple angles or just main view?");
-    if (!provided.hasReferences)
-      questions.push("Do you have any creature references in mind?");
+  if (projectType.includes("Creature") || text.includes("creature") || text.includes("monster")) {
+    if (!provided.hasAngles) questions.push("How detailed do the anatomy references need to be?");
+    if (!provided.hasAngles) questions.push("Multiple angles or just main view?");
+    if (!provided.hasReferences) questions.push("Do you have any creature references in mind?");
   }
 
-  if (
-    text.includes("campaign") ||
-    text.includes("dnd") ||
-    text.includes("d&d")
-  ) {
-    if (!provided.hasUsage)
-      questions.push("Is this for VTT tokens or print handouts?");
+  if (text.includes("campaign") || text.includes("dnd") || text.includes("d&d")) {
+    if (!provided.hasUsage) questions.push("Is this for VTT tokens or print handouts?");
     if (!provided.hasQuantity) questions.push("How many characters total?");
   }
 
@@ -414,14 +359,11 @@ const getValueAddingQuestion = (title, description, projectType) => {
   }
 
   // Questions génériques mais utiles (en évitant les redondances)
-  if (!provided.hasTimeline)
-    questions.push("What's your timeline looking like?");
+  if (!provided.hasTimeline) questions.push("What's your timeline looking like?");
   if (!provided.hasReferences) questions.push("Do you have visual references?");
-  if (!provided.hasFormat)
-    questions.push("What format do you need the finals in?");
+  if (!provided.hasFormat) questions.push("What format do you need the finals in?");
   if (!provided.hasUsage) questions.push("Is this for commercial use?");
-  if (!provided.hasStyle)
-    questions.push("What style direction are you thinking?");
+  if (!provided.hasStyle) questions.push("What style direction are you thinking?");
   if (!provided.hasBudget) questions.push("What's your budget range?");
 
   // Si toutes les infos importantes sont déjà données, poser des questions plus spécifiques
@@ -439,7 +381,7 @@ const getValueAddingQuestion = (title, description, projectType) => {
   return questions;
 };
 
-const getProjectInsight = (title, description, projectType) => {
+const getProjectInsight = (title, description) => {
   const text = (title + " " + description).toLowerCase();
 
   if (text.includes("ai") && text.includes("refine")) {
@@ -478,52 +420,32 @@ const assessResponseQuality = (response, originalTitle) => {
   // Vérifier la personnalisation (référence au titre original)
   const titleWords = originalTitle.toLowerCase().split(" ");
   const hasPersonalization = titleWords.some(
-    (word) => word.length > 3 && response.toLowerCase().includes(word)
+    word => word.length > 3 && response.toLowerCase().includes(word)
   );
   if (hasPersonalization) score += 1;
 
   // Vérifier la structure (question ou call-to-action à la fin)
-  if (response.includes("?") || response.toLowerCase().includes("feel free"))
-    score += 1;
+  if (response.includes("?") || response.toLowerCase().includes("feel free")) score += 1;
 
   // Éviter les clichés IA
-  const cliches = [
-    "perfect fit",
-    "thrilled",
-    "excited to work",
-    "look no further",
-  ];
-  const hasCliche = cliches.some((cliche) =>
-    response.toLowerCase().includes(cliche)
-  );
+  const cliches = ["perfect fit", "thrilled", "excited to work", "look no further"];
+  const hasCliche = cliches.some(cliche => response.toLowerCase().includes(cliche));
   if (!hasCliche) score += 1;
 
   return Math.min(score, 10); // Cap à 10
 };
 
 // Réponse de secours si Groq échoue
-const generateFallbackResponse = (jobData) => {
-  const projectType = analyzeProjectType(
-    jobData.title,
-    jobData.description || ""
-  );
-  const questions = getValueAddingQuestion(
-    jobData.title,
-    jobData.description || "",
-    projectType
-  );
-  const insight = getProjectInsight(
-    jobData.title,
-    jobData.description || "",
-    projectType
-  );
-  const randomQuestion =
-    questions[Math.floor(Math.random() * questions.length)];
+const generateFallbackResponse = jobData => {
+  const projectType = analyzeProjectType(jobData.title, jobData.description || "");
+  const questions = getValueAddingQuestion(jobData.title, jobData.description || "", projectType);
+  const insight = getProjectInsight(jobData.title, jobData.description || "", projectType);
+  const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
 
   // Détecter la langue
   const fullText = jobData.title + " " + (jobData.description || "");
   const isEnglish =
-    /^[\x00-\x7F]*$/.test(fullText) ||
+    /^[ -~]*$/.test(fullText) ||
     fullText.toLowerCase().includes("looking for") ||
     fullText.toLowerCase().includes("hiring");
 
@@ -552,9 +474,7 @@ const generateFallbackResponse = (jobData) => {
 
 // Analyser plusieurs jobs en lot
 export const analyzeMultipleJobs = async (jobs, maxAnalyses = 10) => {
-  console.log(
-    `🚀 [Groq] Analyse en lot: ${Math.min(jobs.length, maxAnalyses)} jobs`
-  );
+  console.log(`🚀 [Groq] Analyse en lot: ${Math.min(jobs.length, maxAnalyses)} jobs`);
 
   const results = [];
   let successCount = 0;
@@ -567,14 +487,14 @@ export const analyzeMultipleJobs = async (jobs, maxAnalyses = 10) => {
       const analysis = await analyzeJobWithAI(job);
       results.push({
         job: job,
-        analysis: analysis,
+        analysis: analysis
       });
 
       if (analysis.success) successCount++;
       else errorCount++;
 
       // Pause courte (Groq est rapide mais respectons les limites)
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
       console.error(`❌ [Groq] Erreur analyse job ${i + 1}:`, error);
       errorCount++;
@@ -585,15 +505,13 @@ export const analyzeMultipleJobs = async (jobs, maxAnalyses = 10) => {
           success: false,
           response: generateFallbackResponse(job),
           error: error.message,
-          metadata: { provider: "Fallback" },
-        },
+          metadata: { provider: "Fallback" }
+        }
       });
     }
   }
 
-  console.log(
-    `✅ [Groq] Analyses terminées: ${successCount} succès, ${errorCount} erreurs`
-  );
+  console.log(`✅ [Groq] Analyses terminées: ${successCount} succès, ${errorCount} erreurs`);
   return results;
 };
 
@@ -606,11 +524,11 @@ export const testGroqConnection = async () => {
       messages: [
         {
           role: "user",
-          content: "Test connection. Reply with exactly 'Connection OK'.",
-        },
+          content: "Test connection. Reply with exactly 'Connection OK'."
+        }
       ],
       model: "llama-3.1-8b-instant", // Modèle le plus rapide pour test
-      max_tokens: 10,
+      max_tokens: 10
     });
 
     const response = completion.choices[0].message.content.trim();
@@ -628,18 +546,6 @@ export const testGroqConnection = async () => {
   }
 };
 
-const getRelevantExperienceExample = (projectType) => {
-  const experienceMap = {
-    "Creature Design": "creature and monster design work",
-    "Character Design": "character design and illustration",
-    "D&D/RPG Commission": "fantasy character and creature art",
-    "Game Art Commission": "game art and character design",
-    "Fantasy Illustration": "fantasy illustration and concept art",
-  };
-
-  return experienceMap[projectType] || "digital art and character design";
-};
-
 // Variables de tracking en mémoire
 let usageStats = {
   totalRequests: 0,
@@ -651,7 +557,7 @@ let usageStats = {
   lastRequest: null,
   errorTypes: {},
   dailyUsage: {},
-  averageTokensPerRequest: 0,
+  averageTokensPerRequest: 0
 };
 
 // Fonction pour enregistrer une requête
@@ -684,7 +590,7 @@ const trackRequest = (success, tokens, responseTime, error = null) => {
       requests: 0,
       tokens: 0,
       successes: 0,
-      failures: 0,
+      failures: 0
     };
   }
 
@@ -711,10 +617,9 @@ const trackRequest = (success, tokens, responseTime, error = null) => {
 };
 
 // MODIFIEZ votre fonction analyzeJobWithAI existante
-export const analyzeJobWithAI = async (jobData) => {
+export const analyzeJobWithAI = async jobData => {
   const startTime = Date.now();
   let tokens = 0;
-  let success = false;
   let errorMessage = null;
 
   try {
@@ -737,23 +642,22 @@ export const analyzeJobWithAI = async (jobData) => {
       messages: [
         {
           role: "system",
-          content: `Tu es un expert en rédaction de réponses pour commissions artistiques. Tu écris au nom de ${ARTIST_PROFILE.name}, spécialiste en creature design et character design. Tes réponses sont professionnelles, personnalisées et montrent une vraie compréhension du brief client.`,
+          content: `Tu es un expert en rédaction de réponses pour commissions artistiques. Tu écris au nom de ${ARTIST_PROFILE.name}, spécialiste en creature design et character design. Tes réponses sont professionnelles, personnalisées et montrent une vraie compréhension du brief client.`
         },
         {
           role: "user",
-          content: prompt,
-        },
+          content: prompt
+        }
       ],
       model: "llama-3.1-8b-instant",
       max_tokens: 350,
       temperature: 0.8,
-      top_p: 0.9,
+      top_p: 0.9
     });
 
     const responseTime = Date.now() - startTime;
     const aiResponse = completion.choices[0].message.content.trim();
     tokens = completion.usage?.total_tokens || 0;
-    success = true;
 
     // 📊 TRACKER LA REQUÊTE RÉUSSIE
     trackRequest(true, tokens, responseTime);
@@ -771,26 +675,20 @@ export const analyzeJobWithAI = async (jobData) => {
         budget: budget,
         relevanceScore: jobData.relevanceScore,
         projectType: analyzeProjectType(jobData.title, jobData.description),
-        specialtyMatch: determineSpecialtyMatch(
-          jobData.title,
-          jobData.description
-        ),
+        specialtyMatch: determineSpecialtyMatch(jobData.title, jobData.description),
         qualityScore: qualityScore,
-        suggestedPortfolioSection: suggestRelevantPortfolioSection(
-          jobData.title
-        ),
+        suggestedPortfolioSection: suggestRelevantPortfolioSection(jobData.title)
       },
       metadata: {
         provider: "Groq",
         model: "llama-3.1-8b-instant",
         tokens: tokens,
         responseTime: responseTime,
-        cost: 0,
-      },
+        cost: 0
+      }
     };
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    success = false;
     errorMessage = error.message;
 
     console.error("❌ [Groq] Erreur analyse:", error);
@@ -817,15 +715,15 @@ export const analyzeJobWithAI = async (jobData) => {
         projectType: "Erreur analyse",
         specialtyMatch: "Analyse manuelle requise",
         qualityScore: 5,
-        suggestedPortfolioSection: "portfolio complet",
+        suggestedPortfolioSection: "portfolio complet"
       },
       metadata: {
         provider: "Fallback Template",
         model: "Template",
         tokens: 0,
         responseTime: responseTime,
-        cost: 0,
-      },
+        cost: 0
+      }
     };
   }
 };
@@ -838,7 +736,7 @@ export const getGroqUsageStats = () => {
     requests: 0,
     tokens: 0,
     successes: 0,
-    failures: 0,
+    failures: 0
   };
 
   // Calculer uptime
@@ -848,9 +746,7 @@ export const getGroqUsageStats = () => {
   // Calculer taux de succès
   const successRate =
     usageStats.totalRequests > 0
-      ? Math.round(
-          (usageStats.successfulRequests / usageStats.totalRequests) * 100
-        )
+      ? Math.round((usageStats.successfulRequests / usageStats.totalRequests) * 100)
       : 0;
 
   // Temps de réponse moyen
@@ -893,9 +789,7 @@ export const getGroqUsageStats = () => {
       successes: todayStats.successes,
       failures: todayStats.failures,
       successRate:
-        todayStats.requests > 0
-          ? Math.round((todayStats.successes / todayStats.requests) * 100)
-          : 0,
+        todayStats.requests > 0 ? Math.round((todayStats.successes / todayStats.requests) * 100) : 0
     },
 
     // Erreurs
@@ -908,8 +802,8 @@ export const getGroqUsageStats = () => {
     groqLimits: {
       tokensPerMinute: 6000,
       remainingEstimate: Math.max(0, 6000 - tokensPerMinute),
-      isNearLimit: tokensPerMinute > 5000,
-    },
+      isNearLimit: tokensPerMinute > 5000
+    }
   };
 };
 
@@ -925,7 +819,7 @@ export const resetGroqStats = () => {
     lastRequest: null,
     errorTypes: {},
     dailyUsage: {},
-    averageTokensPerRequest: 0,
+    averageTokensPerRequest: 0
   };
   console.log("🔄 [Stats] Statistiques Groq réinitialisées");
 };
@@ -945,8 +839,6 @@ export const getDailyStatsReport = () => {
 • Échecs: ${todayStats.failures}
 • Tokens: ${todayStats.tokens}
 • Taux succès: ${
-    todayStats.requests > 0
-      ? Math.round((todayStats.successes / todayStats.requests) * 100)
-      : 0
-  }%`;
+  todayStats.requests > 0 ? Math.round((todayStats.successes / todayStats.requests) * 100) : 0
+}%`;
 };

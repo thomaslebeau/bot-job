@@ -21,7 +21,6 @@ const scoreJobRelevance = (title, description = "") => {
     "dragon design": 16,
     "demon design": 14,
     "alien design": 14,
-    "monster manual": 15,
     bestiary: 14,
     "creature sheet": 12,
 
@@ -92,7 +91,7 @@ const scoreJobRelevance = (title, description = "") => {
     familiar: 10,
     companion: 8,
     mount: 8,
-    pet: 6,
+    pet: 6
   };
 
   // Styles/types à éviter ou moins compatibles avec vos compétences
@@ -144,7 +143,7 @@ const scoreJobRelevance = (title, description = "") => {
     "very low budget": -8,
     "student budget": -6,
     cheap: -8,
-    free: -15,
+    free: -15
   };
 
   // Bonus spéciaux pour creature design
@@ -175,7 +174,7 @@ const scoreJobRelevance = (title, description = "") => {
     "commercial use": 5,
     "game development": 6,
     "indie game": 4,
-    "concept development": 5,
+    "concept development": 5
   };
 
   // Calculer le score
@@ -201,20 +200,20 @@ const scoreJobRelevance = (title, description = "") => {
   const budgetMatch = text.match(/\$(\d+)/);
   if (budgetMatch) {
     const budget = parseInt(budgetMatch[1]);
-    if (budget >= 1000) score += 12; // Très gros projet
-    else if (budget >= 500) score += 8; // Projet sérieux
-    else if (budget >= 200) score += 5; // Correct
-    else if (budget >= 100) score += 2; // Minimum
+    if (budget >= 1000)
+      score += 12; // Très gros projet
+    else if (budget >= 500)
+      score += 8; // Projet sérieux
+    else if (budget >= 200)
+      score += 5; // Correct
+    else if (budget >= 100)
+      score += 2; // Minimum
     else if (budget >= 50) score += 0; // Limite basse
     // En dessous de 50$ = pas de bonus, voir malus plus haut
   }
 
   // Malus pour urgence (creature design = temps nécessaire)
-  if (
-    text.includes("asap") ||
-    text.includes("urgent") ||
-    text.includes("rush")
-  ) {
+  if (text.includes("asap") || text.includes("urgent") || text.includes("rush")) {
     score -= 3;
   }
 
@@ -268,7 +267,7 @@ const adjustScoreForTimingAndCompetition = (
   return adjustedScore;
 };
 
-const detectProjectStatus = (submission) => {
+const detectProjectStatus = submission => {
   const title = submission.title.toLowerCase();
   const description = (submission.selftext || "").toLowerCase();
   const flair = (submission.link_flair_text || "").toLowerCase();
@@ -302,7 +301,7 @@ const detectProjectStatus = (submission) => {
     "finished",
     "going with someone",
     "chosen an artist",
-    "selected an artist",
+    "selected an artist"
   ];
 
   const updateKeywords = [
@@ -334,7 +333,7 @@ const detectProjectStatus = (submission) => {
     "narrowing down",
     "shortlisting",
     "final decision",
-    "almost decided",
+    "almost decided"
   ];
 
   // Patterns spécifiques
@@ -354,7 +353,7 @@ const detectProjectStatus = (submission) => {
     /thank.*you.*all.*found/,
     /going with.*artist/,
     /chosen.*artist/,
-    /selected.*artist/,
+    /selected.*artist/
   ];
 
   // 🆕 PATTERNS POUR UPDATE/EN_COURS
@@ -376,15 +375,11 @@ const detectProjectStatus = (submission) => {
     /still.*deciding/,
     /making.*decision/,
     /narrowing.*down/,
-    /shortlisting/,
+    /shortlisting/
   ];
 
-  const hasFoundKeyword = foundKeywords.some((keyword) =>
-    fullText.includes(keyword)
-  );
-  const hasFoundPattern = foundPatterns.some((pattern) =>
-    pattern.test(fullText)
-  );
+  const hasFoundKeyword = foundKeywords.some(keyword => fullText.includes(keyword));
+  const hasFoundPattern = foundPatterns.some(pattern => pattern.test(fullText));
   const hasFoundFlair =
     flair.includes("found") ||
     flair.includes("filled") ||
@@ -393,12 +388,8 @@ const detectProjectStatus = (submission) => {
     flair.includes("complete");
 
   // 🆕 VÉRIFIER LES UPDATE
-  const hasUpdateKeyword = updateKeywords.some((keyword) =>
-    fullText.includes(keyword)
-  );
-  const hasUpdatePattern = updatePatterns.some((pattern) =>
-    pattern.test(fullText)
-  );
+  const hasUpdateKeyword = updateKeywords.some(keyword => fullText.includes(keyword));
+  const hasUpdatePattern = updatePatterns.some(pattern => pattern.test(fullText));
 
   // Vérifier si c'est un update mais pas encore fermé
   const isInProgress =
@@ -415,11 +406,7 @@ const detectProjectStatus = (submission) => {
 
   if (isProjectClosed) {
     status = "FERMÉ";
-    reason = hasFoundFlair
-      ? "FLAIR_FOUND"
-      : hasFoundPattern
-      ? "PATTERN_FOUND"
-      : "KEYWORD_FOUND";
+    reason = hasFoundFlair ? "FLAIR_FOUND" : hasFoundPattern ? "PATTERN_FOUND" : "KEYWORD_FOUND";
   } else if (isInProgress) {
     status = "EN_COURS";
     reason = hasUpdatePattern ? "UPDATE_PATTERN" : "UPDATE_KEYWORD";
@@ -432,33 +419,29 @@ const detectProjectStatus = (submission) => {
     status: status,
     reason: reason,
     details: {
-      foundInTitle: foundKeywords.some((keyword) => title.includes(keyword)),
-      foundInDescription: foundKeywords.some((keyword) =>
-        description.includes(keyword)
-      ),
+      foundInTitle: foundKeywords.some(keyword => title.includes(keyword)),
+      foundInDescription: foundKeywords.some(keyword => description.includes(keyword)),
       foundInFlair: hasFoundFlair,
       foundPattern: hasFoundPattern,
       // 🆕 DÉTAILS UPDATE
-      updateInTitle: updateKeywords.some((keyword) => title.includes(keyword)),
-      updateInDescription: updateKeywords.some((keyword) =>
-        description.includes(keyword)
-      ),
+      updateInTitle: updateKeywords.some(keyword => title.includes(keyword)),
+      updateInDescription: updateKeywords.some(keyword => description.includes(keyword)),
       updatePattern: hasUpdatePattern,
       // 🆕 DÉTAILS SUPPRESSION
       deletedByUser: false,
-      removedByMods: false,
+      removedByMods: false
     },
     // 🆕 INFORMATIONS EXTRAITES DE L'UPDATE
-    updateInfo: isInProgress ? extractUpdateInfo(fullText) : null,
+    updateInfo: isInProgress ? extractUpdateInfo(fullText) : null
   };
 };
 
-const extractUpdateInfo = (text) => {
+const extractUpdateInfo = text => {
   const info = {
     timeline: null,
     responseCount: null,
     stage: null,
-    notes: [],
+    notes: []
   };
 
   // Extraire timeline
@@ -468,7 +451,7 @@ const extractUpdateInfo = (text) => {
     /(\d+).*days?/,
     /week/,
     /soon/,
-    /taking.*time/,
+    /taking.*time/
   ];
 
   for (const pattern of timelinePatterns) {
@@ -485,7 +468,7 @@ const extractUpdateInfo = (text) => {
     /many responses/,
     /tons of responses/,
     /overwhelmed.*responses/,
-    /(\d+).*responses/,
+    /(\d+).*responses/
   ];
 
   for (const pattern of responsePatterns) {
@@ -533,7 +516,7 @@ const isForHirePost = (title, description, flair) => {
     "taking commissions",
     "commissions open",
     "open for commissions",
-    "accepting commissions",
+    "accepting commissions"
   ];
 
   for (const phrase of explicitForHire) {
@@ -558,7 +541,7 @@ const isForHirePost = (title, description, flair) => {
     "my style",
     "my portfolio",
     "check out my",
-    "here's my",
+    "here's my"
   ];
 
   // 3. APPELS À L'ACTION
@@ -571,7 +554,7 @@ const isForHirePost = (title, description, flair) => {
     "hit me up",
     "send me a message",
     "feel free to contact",
-    "shoot me a message",
+    "shoot me a message"
   ];
 
   // 4. SIGNAUX COMMERCIAUX
@@ -588,28 +571,22 @@ const isForHirePost = (title, description, flair) => {
     "rates start",
     "portfolio in bio",
     "link in bio",
-    "more examples",
+    "more examples"
   ];
 
   // SCORING DES SIGNAUX FOR HIRE
   let forHireScore = 0;
 
   // Vérifier auto-promotion
-  const hasAutoPromo = selfPromotion.some((phrase) =>
-    titleLower.includes(phrase)
-  );
+  const hasAutoPromo = selfPromotion.some(phrase => titleLower.includes(phrase));
   if (hasAutoPromo) forHireScore += 3;
 
   // Vérifier appels à l'action
-  const hasCallToAction = callsToAction.some((phrase) =>
-    fullText.includes(phrase)
-  );
+  const hasCallToAction = callsToAction.some(phrase => fullText.includes(phrase));
   if (hasCallToAction) forHireScore += 2;
 
   // Vérifier signaux commerciaux
-  const hasCommercialSignal = commercialSignals.some((phrase) =>
-    fullText.includes(phrase)
-  );
+  const hasCommercialSignal = commercialSignals.some(phrase => fullText.includes(phrase));
   if (hasCommercialSignal) forHireScore += 2;
 
   // 5. PATTERNS SPÉCIFIQUES
@@ -632,24 +609,17 @@ const isForHirePost = (title, description, flair) => {
     "wanted",
     "commission",
     "project",
-    "help with",
+    "help with"
   ];
 
-  const hasClientKeywords = clientKeywords.some((phrase) =>
-    titleLower.includes(phrase)
-  );
+  const hasClientKeywords = clientKeywords.some(phrase => titleLower.includes(phrase));
   if (!hasClientKeywords && forHireScore > 0) {
     forHireScore += 1;
   }
 
   // DÉCISION FINALE
   if (forHireScore >= 4) {
-    console.log(
-      `🚫 For Hire détecté (score: ${forHireScore}): "${title.substring(
-        0,
-        60
-      )}..."`
-    );
+    console.log(`🚫 For Hire détecté (score: ${forHireScore}): "${title.substring(0, 60)}..."`);
     return true;
   }
 
@@ -677,7 +647,7 @@ const isValidHiringPost = (title, description, flair) => {
     "artist needed",
     "anyone available",
     "can someone",
-    "would like to hire",
+    "would like to hire"
   ];
 
   // CONTEXTE CLIENT
@@ -695,7 +665,7 @@ const isValidHiringPost = (title, description, flair) => {
     "client needs",
     "budget of",
     "willing to pay",
-    "can pay",
+    "can pay"
   ];
 
   // STRUCTURES DE BRIEF
@@ -705,23 +675,23 @@ const isValidHiringPost = (title, description, flair) => {
     "requirements:",
     "project details:",
     "looking for someone who",
-    "need someone to",
+    "need someone to"
   ];
 
   let hiringScore = 0;
 
   // Vérifier signaux d'embauche
-  if (hiringSignals.some((signal) => fullText.includes(signal))) {
+  if (hiringSignals.some(signal => fullText.includes(signal))) {
     hiringScore += 3;
   }
 
   // Vérifier contexte client
-  if (clientContext.some((context) => fullText.includes(context))) {
+  if (clientContext.some(context => fullText.includes(context))) {
     hiringScore += 2;
   }
 
   // Vérifier structure de brief
-  if (briefStructures.some((structure) => fullText.includes(structure))) {
+  if (briefStructures.some(structure => fullText.includes(structure))) {
     hiringScore += 2;
   }
 
@@ -734,7 +704,7 @@ const isValidHiringPost = (title, description, flair) => {
 };
 
 // 🆕 FONCTION POUR VÉRIFIER SI LES COMMENTAIRES SONT DISPONIBLES
-const checkCommentAvailability = (submission) => {
+const checkCommentAvailability = submission => {
   const now = Date.now();
   const postAge = now - submission.created_utc * 1000;
   const ageInHours = postAge / (1000 * 60 * 60);
@@ -742,16 +712,13 @@ const checkCommentAvailability = (submission) => {
 
   return {
     canComment:
-      !submission.locked &&
-      !submission.archived &&
-      !submission.removed &&
-      ageInMonths < 6,
+      !submission.locked && !submission.archived && !submission.removed && ageInMonths < 6,
     locked: submission.locked,
     archived: submission.archived,
     removed: submission.removed,
     tooOld: ageInMonths > 6,
     ageInHours: Math.floor(ageInHours),
-    status: getCommentStatus(submission, ageInMonths),
+    status: getCommentStatus(submission, ageInMonths)
   };
 };
 
@@ -778,7 +745,7 @@ export const getReddit = async () => {
       username: process.env.username,
       password: process.env.password,
       clientId: process.env.clientId,
-      clientSecret: process.env.clientSecret,
+      clientSecret: process.env.clientSecret
     };
 
     const r = new snoowrap({
@@ -786,7 +753,7 @@ export const getReddit = async () => {
       clientId: config.clientId,
       clientSecret: config.clientSecret,
       username: config.username,
-      password: config.password,
+      password: config.password
     });
 
     // Configuration des subreddits avec leurs paramètres spécifiques
@@ -794,39 +761,39 @@ export const getReddit = async () => {
       {
         name: "HungryArtists",
         params: {
-          query: 'flair:"Hiring" -flair:"For Hire"',
+          query: "flair:\"Hiring\" -flair:\"For Hire\"",
           sort: "new",
           restrict_sr: "on",
-          limit: 10,
-        },
+          limit: 10
+        }
       },
       {
         name: "artcommissions",
         params: {
-          query: 'flair:"[Patron]" OR (hiring NOT "for hire")',
+          query: "flair:\"[Patron]\" OR (hiring NOT \"for hire\")",
           sort: "new",
           restrict_sr: "on",
-          limit: 10,
-        },
+          limit: 10
+        }
       },
       {
         name: "starvingartists",
         params: {
-          query: '(Request OR Hiring OR Commission) -"For Hire" -"for hire"',
+          query: "(Request OR Hiring OR Commission) -\"For Hire\" -\"for hire\"",
           sort: "new",
           restrict_sr: "on",
-          limit: 8,
-        },
+          limit: 8
+        }
       },
       {
         name: "hireanartist",
         params: {
-          query: 'flair:"[Hiring]-project" OR flair:"[Hiring]-one-off"',
+          query: "flair:\"[Hiring]-project\" OR flair:\"[Hiring]-one-off\"",
           sort: "new",
           restrict_sr: "on",
-          limit: 10,
-        },
-      },
+          limit: 10
+        }
+      }
     ];
 
     console.log("🔍 Recherche sur les subreddits...");
@@ -841,7 +808,7 @@ export const getReddit = async () => {
         const posts = await r.getSubreddit(config.name).search(config.params);
 
         const jobs = posts
-          .filter((submission) => {
+          .filter(submission => {
             const title = submission.title;
             const description = submission.selftext || "";
             const flair = submission.link_flair_text || "";
@@ -854,9 +821,7 @@ export const getReddit = async () => {
 
             // 2. Garder seulement les vrais posts d'embauche
             if (!isValidHiringPost(title, description, flair)) {
-              console.log(
-                `⏭️ Pas un post d'embauche: "${title.substring(0, 50)}..."`
-              );
+              console.log(`⏭️ Pas un post d'embauche: "${title.substring(0, 50)}..."`);
               return false;
             }
 
@@ -864,9 +829,7 @@ export const getReddit = async () => {
             const commentStatus = checkCommentAvailability(submission);
             if (!commentStatus.canComment) {
               console.log(
-                `⏭️ Commentaires fermés (${
-                  commentStatus.status
-                }): ${title.substring(0, 50)}...`
+                `⏭️ Commentaires fermés (${commentStatus.status}): ${title.substring(0, 50)}...`
               );
               return false;
             }
@@ -886,23 +849,15 @@ export const getReddit = async () => {
             // 5. Vérifier la pertinence
             const relevanceScore = scoreJobRelevance(title, description);
             if (relevanceScore <= 0) {
-              console.log(
-                `⏭️ Score trop bas (${relevanceScore}): ${title.substring(
-                  0,
-                  50
-                )}...`
-              );
+              console.log(`⏭️ Score trop bas (${relevanceScore}): ${title.substring(0, 50)}...`);
               return false;
             }
 
             return true;
           })
-          .map((submission) => {
+          .map(submission => {
             const description = submission.selftext || "";
-            const baseRelevanceScore = scoreJobRelevance(
-              submission.title,
-              description
-            );
+            const baseRelevanceScore = scoreJobRelevance(submission.title, description);
             const hoursAgo = Math.floor(
               (Date.now() - submission.created_utc * 1000) / (1000 * 60 * 60)
             );
@@ -937,7 +892,7 @@ export const getReddit = async () => {
               canComment: commentInfo.canComment,
               isLocked: commentInfo.locked,
               isArchived: commentInfo.archived,
-              isRemoved: commentInfo.removed,
+              isRemoved: commentInfo.removed
             };
           });
 
@@ -945,7 +900,7 @@ export const getReddit = async () => {
         allJobs.push(...jobs);
 
         // Petite pause entre les requêtes pour respecter les limites API
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error(`❌ Erreur sur r/${config.name}:`, error.message);
         // Continuer avec les autres subreddits même si un échoue
@@ -984,7 +939,7 @@ export const getReddit = async () => {
           canComment: job.canComment,
           isLocked: job.isLocked,
           isArchived: job.isArchived,
-          isRemoved: job.isRemoved,
+          isRemoved: job.isRemoved
         });
       }
     }
@@ -997,9 +952,7 @@ export const getReddit = async () => {
 
     // Log plus détaillé pour le debugging
     if (error.message.includes("401")) {
-      console.error(
-        "🔐 Erreur d'authentification Reddit - Vérifiez vos identifiants"
-      );
+      console.error("🔐 Erreur d'authentification Reddit - Vérifiez vos identifiants");
     } else if (error.message.includes("429")) {
       console.error("⏰ Rate limit atteint - Trop de requêtes");
     } else if (error.message.includes("ENOTFOUND")) {
@@ -1025,7 +978,7 @@ export const getRedditForced = async () => {
       username: process.env.username,
       password: process.env.password,
       clientId: process.env.clientId,
-      clientSecret: process.env.clientSecret,
+      clientSecret: process.env.clientSecret
     };
 
     const r = new snoowrap({
@@ -1033,7 +986,7 @@ export const getRedditForced = async () => {
       clientId: config.clientId,
       clientSecret: config.clientSecret,
       username: config.username,
-      password: config.password,
+      password: config.password
     });
 
     // Recherche plus large pour avoir des résultats même anciens
@@ -1045,8 +998,8 @@ export const getRedditForced = async () => {
           sort: "new",
           restrict_sr: "on",
           limit: 15,
-          t: "week", // Dernière semaine
-        },
+          t: "week" // Dernière semaine
+        }
       },
       {
         name: "DMAcademy", // Subreddit supplémentaire pour tests
@@ -1055,9 +1008,9 @@ export const getRedditForced = async () => {
           sort: "new",
           restrict_sr: "on",
           limit: 10,
-          t: "month",
-        },
-      },
+          t: "month"
+        }
+      }
     ];
 
     console.log("🔍 Recherche FORCÉE sur les subreddits...");
@@ -1070,12 +1023,9 @@ export const getRedditForced = async () => {
 
         const posts = await r.getSubreddit(config.name).search(config.params);
 
-        const jobs = posts.map((submission) => {
+        const jobs = posts.map(submission => {
           const description = submission.selftext || "";
-          const relevanceScore = scoreJobRelevance(
-            submission.title,
-            description
-          );
+          const relevanceScore = scoreJobRelevance(submission.title, description);
 
           const hoursAgo = Math.floor(
             (Date.now() - submission.created_utc * 1000) / (1000 * 60 * 60)
@@ -1092,25 +1042,21 @@ export const getRedditForced = async () => {
             relevanceScore: relevanceScore,
             numComments: submission.num_comments,
             createdDate: new Date(submission.created_utc * 1000),
-            hoursAgo: hoursAgo,
+            hoursAgo: hoursAgo
           };
         });
 
-        console.log(
-          `✅ r/${config.name}: ${jobs.length} offres trouvées (forcées)`
-        );
+        console.log(`✅ r/${config.name}: ${jobs.length} offres trouvées (forcées)`);
         allJobs.push(...jobs);
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error(`❌ Erreur sur r/${config.name}:`, error.message);
       }
     }
 
     // Trier par score de pertinence
-    const sortedJobs = allJobs.sort(
-      (a, b) => b.relevanceScore - a.relevanceScore
-    );
+    const sortedJobs = allJobs.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
     console.log(`🎯 Total forcé: ${sortedJobs.length} offres trouvées`);
 
@@ -1122,9 +1068,4 @@ export const getRedditForced = async () => {
 };
 
 // 🆕 EXPORT DES NOUVELLES FONCTIONS POUR DEBUGGING
-export {
-  isForHirePost,
-  isValidHiringPost,
-  checkCommentAvailability,
-  detectProjectStatus,
-};
+export { isForHirePost, isValidHiringPost, checkCommentAvailability, detectProjectStatus };

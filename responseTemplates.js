@@ -11,7 +11,7 @@ My approach focuses on both anatomical believability and creative storytelling -
 
 I typically work in digital medium with detailed concept sheets including multiple views and anatomical notes. Would you like to see some relevant samples from my portfolio?
 
-Looking forward to discussing the project details with you!`,
+Looking forward to discussing the project details with you!`
       },
       {
         condition: (budget) => budget >= 200,
@@ -21,7 +21,7 @@ My process usually involves initial sketches to nail down the concept, followed 
 
 I'd be happy to discuss your vision and see if we're a good fit. Could you share any reference materials or specific requirements you have in mind?
 
-Thanks for your time!`,
+Thanks for your time!`
       },
       {
         condition: (budget) => budget < 200,
@@ -29,8 +29,8 @@ Thanks for your time!`,
 
 I'd love to learn more about the scope and your specific vision. What kind of creature did you have in mind, and do you have any references or style preferences?
 
-Looking forward to hearing from you!`,
-      },
+Looking forward to hearing from you!`
+      }
     ],
 
     characterDesign: [
@@ -42,7 +42,7 @@ My style leans toward semi-realistic with stylized elements, which works particu
 
 I typically provide concept sketches, refined illustrations, and can include reference sheets if needed. Would you like to see some examples of my character work?
 
-Happy to discuss your project in more detail!`,
+Happy to discuss your project in more detail!`
       },
       {
         condition: (budget) => budget >= 150,
@@ -52,8 +52,8 @@ I'm curious about the character's background and the world they inhabit - these 
 
 Would you be able to share more details about what you're looking for? Any specific style references or character traits you want to emphasize?
 
-Thanks!`,
-      },
+Thanks!`
+      }
     ],
 
     dndRpg: [
@@ -65,7 +65,7 @@ I work in a semi-realistic style that balances fantasy elements with believable 
 
 I'd love to hear about your character's class, background, and any specific moments or traits you'd like highlighted in the artwork.
 
-Looking forward to potentially bringing your character to life!`,
+Looking forward to potentially bringing your character to life!`
       },
       {
         condition: (budget) => budget >= 200,
@@ -75,8 +75,8 @@ I'd love to learn more about your character - their class, personality, and any 
 
 My style works well for fantasy characters and I focus on creating designs that feel true to the character's story.
 
-Thanks for considering me for your project!`,
-      },
+Thanks for considering me for your project!`
+      }
     ],
 
     boardGame: [
@@ -88,7 +88,7 @@ I work in a semi-realistic style that translates well to game components, whethe
 
 I'd love to learn more about your game's theme and the specific assets you need. Are you looking for character designs, creatures, items, or environmental pieces?
 
-Looking forward to potentially being part of your project!`,
+Looking forward to potentially being part of your project!`
       },
       {
         condition: (budget) => budget >= 300,
@@ -98,8 +98,8 @@ I'd be interested to learn more about your game's theme and the style you're aim
 
 My portfolio includes fantasy and creature work that might be relevant. Would you like to see some examples?
 
-Thanks!`,
-      },
+Thanks!`
+      }
     ],
 
     generic: [
@@ -109,9 +109,9 @@ Thanks!`,
 
 Could you tell me more about what you're looking for? I'd love to learn about your vision and see if my style would be a good fit for your project.
 
-Thanks for your time!`,
-      },
-    ],
+Thanks for your time!`
+      }
+    ]
   };
 
   // Extraire le budget du texte
@@ -155,11 +155,11 @@ Thanks for your time!`,
       selectedTemplates === templates.creatureDesign
         ? "creature"
         : selectedTemplates === templates.characterDesign
-        ? "character"
-        : selectedTemplates === templates.dndRpg
-        ? "dnd"
-        : selectedTemplates === templates.boardGame
-        ? "game"
-        : "generic",
+          ? "character"
+          : selectedTemplates === templates.dndRpg
+            ? "dnd"
+            : selectedTemplates === templates.boardGame
+              ? "game"
+              : "generic"
   };
 };
