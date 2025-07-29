@@ -1069,25 +1069,39 @@ client.on("messageCreate", async (message) => {
         const result = await autoCloseFoundOpportunities();
 
         if (result.success) {
-          if (result.closedCount > 0) {
-            message.channel.send(
-              `✅ **Nettoyage terminé!**\n` +
-                `🔒 ${result.closedCount} opportunités fermées détectées\n` +
-                `📊 Statuts mis à jour dans Google Sheets`
-            );
+          if (result.closedCount > 0 || result.inProgressCount > 0) {
+            let message = `✅ **Nettoyage terminé!**\n`;
+            if (result.closedCount > 0) {
+              message += `🔒 ${result.closedCount} opportunités fermées détectées\n`;
+            }
+            if (result.inProgressCount > 0) {
+              message += `📋 ${result.inProgressCount} opportunités en cours détectées\n`;
+            }
+            message += `📊 Statuts mis à jour dans Google Sheets`;
+
+            message.channel.send(message);
 
             // Afficher les détails si pas trop nombreux
             if (result.details && result.details.length <= 5) {
               for (const detail of result.details) {
+                let emoji = detail.action === "closed" ? "🔒" : "📋";
+                let actionText =
+                  detail.action === "closed" ? "Fermé" : "En cours";
+
                 message.channel.send(
-                  `🔒 **Fermé:** ${detail.title.substring(0, 50)}...\n` +
+                  `${emoji} **${actionText}:** ${detail.title.substring(
+                    0,
+                    50
+                  )}...\n` +
                     `**Raison:** ${detail.reason}\n` +
                     `**Nouveau statut:** ${detail.newStatus}`
                 );
               }
             }
           } else {
-            message.channel.send("✅ Aucune opportunité fermée détectée");
+            message.channel.send(
+              "✅ Aucune opportunité fermée ou en cours détectée"
+            );
           }
         } else {
           message.channel.send(`❌ Erreur: ${result.error}`);
@@ -1098,6 +1112,7 @@ client.on("messageCreate", async (message) => {
       break;
 
     case "test-closed":
+      const testUrl = "https://reddit.com/test";
       const testTitles = [
         "Looking for artist - FOUND thanks everyone!",
         "[HIRING] Character design needed - $300",

@@ -204,7 +204,12 @@ const createHeaders = async () => {
   }
 };
 
-export const updateOpportunityStatus = async (url, reason) => {
+export const updateOpportunityStatus = async (
+  url,
+  status,
+  reason,
+  updateInfo = null
+) => {
   try {
     if (!sheets) {
       const authSuccess = await initGoogleAuth();
@@ -353,7 +358,7 @@ export const updateOpportunityStatus = async (url, reason) => {
   }
 };
 
-export const checkAndCloseOpportunities = async (opportunities) => {
+export const checkAndUpdateOpportunities = async (opportunities) => {
   let updatedCount = 0;
   let closedCount = 0;
   let inProgressCount = 0;
@@ -470,16 +475,18 @@ export const autoCloseFoundOpportunities = async () => {
       return { success: true, message: "Aucune opportunité ouverte" };
     }
 
-    // Vérifier et fermer les opportunités trouvées fermées
-    const results = await checkAndCloseOpportunities(openOpportunities);
+    // 🔧 CORRECTION: Utiliser checkAndUpdateOpportunities au lieu de checkAndCloseOpportunities
+    const results = await checkAndUpdateOpportunities(openOpportunities);
 
     console.log(
-      `✅ Nettoyage terminé: ${results.closedCount} opportunités fermées`
+      `✅ Nettoyage terminé: ${results.closedCount} fermées, ${results.inProgressCount} en cours`
     );
 
     return {
       success: true,
       closedCount: results.closedCount,
+      inProgressCount: results.inProgressCount,
+      updatedCount: results.updatedCount,
       details: results.results,
     };
   } catch (error) {
