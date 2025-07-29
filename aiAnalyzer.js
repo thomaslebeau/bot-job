@@ -842,6 +842,6 @@ export const getDailyStatsReport = () => {
 • Échecs: ${todayStats.failures}
 • Tokens: ${todayStats.tokens}
 • Taux succès: ${
-    todayStats.requests > 0 ? Math.round((todayStats.successes / todayStats.requests) * 100) : 0
-  }%`;
+  todayStats.requests > 0 ? Math.round((todayStats.successes / todayStats.requests) * 100) : 0
+}%`;
 };
