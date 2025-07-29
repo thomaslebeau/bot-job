@@ -204,7 +204,7 @@ const createHeaders = async () => {
   }
 };
 
-export const updateClosedOpportunityStatus = async (url, reason) => {
+export const updateOpportunityStatus = async (url, reason) => {
   try {
     if (!sheets) {
       const authSuccess = await initGoogleAuth();
@@ -226,32 +226,74 @@ export const updateClosedOpportunityStatus = async (url, reason) => {
         // Colonne D = URL
         const currentStatus = rows[i][9]; // Colonne J = Statut
 
-        // Ne mettre à jour que si le statut est encore NOUVEAU
-        if (currentStatus === "NOUVEAU") {
+        // Ne mettre à jour que si nécessaire
+        if (
+          currentStatus === "NOUVEAU" ||
+          (currentStatus === "EN_COURS" && status === "FERMÉ")
+        ) {
           const statusRange = `Opportunities!J${i + 1}`; // Colonne Statut
           const notesRange = `Opportunities!N${i + 1}`; // Colonne Notes
 
-          // Déterminer le nouveau statut selon la raison
-          let newStatus = "FERMÉ";
+          // Déterminer le nouveau statut selon la raison et le status
+          let newStatus = status;
           let note = "";
 
-          switch (reason) {
-            case "FLAIR_FOUND":
-              newStatus = "FERMÉ (Flair)";
-              note = "Fermé via flair Reddit";
-              break;
-            case "PATTERN_FOUND":
-              newStatus = "FERMÉ (Edit)";
-              note = "Fermé via edit du titre";
-              break;
-            case "KEYWORD_FOUND":
-              newStatus = "FERMÉ (Found)";
-              note = "Fermé - artiste trouvé";
-              break;
-            case "COMMENTS_FOUND":
-              newStatus = "FERMÉ (Commentaire)";
-              note = "Fermé via commentaire auteur";
-              break;
+          if (status === "FERMÉ") {
+            switch (reason) {
+              case "FLAIR_FOUND":
+                newStatus = "FERMÉ (Flair)";
+                note = "Fermé via flair Reddit";
+                break;
+              case "PATTERN_FOUND":
+                newStatus = "FERMÉ (Edit)";
+                note = "Fermé via edit du titre";
+                break;
+              case "KEYWORD_FOUND":
+                newStatus = "FERMÉ (Found)";
+                note = "Fermé - artiste trouvé";
+                break;
+              case "COMMENTS_FOUND":
+                newStatus = "FERMÉ (Commentaire)";
+                note = "Fermé via commentaire auteur";
+                break;
+              // 🆕 GESTION SUPPRESSION
+              case "USER_DELETED":
+                newStatus = "SUPPRIMÉ (User)";
+                note = "Post supprimé par l'utilisateur";
+                break;
+              case "MOD_REMOVED":
+                newStatus = "SUPPRIMÉ (Mods)";
+                note = "Post supprimé par les modérateurs";
+                break;
+            }
+          } else if (status === "EN_COURS") {
+            switch (reason) {
+              case "UPDATE_PATTERN":
+                newStatus = "EN_COURS (Update)";
+                note = "Update détecté - révision en cours";
+                break;
+              case "UPDATE_KEYWORD":
+                newStatus = "EN_COURS (Révision)";
+                note = "Révision des candidatures en cours";
+                break;
+            }
+
+            // 🆕 AJOUTER LES INFOS D'UPDATE
+            if (updateInfo) {
+              const updateDetails = [];
+              if (updateInfo.timeline)
+                updateDetails.push(`Timeline: ${updateInfo.timeline}`);
+              if (updateInfo.responseCount)
+                updateDetails.push(`Réponses: ${updateInfo.responseCount}`);
+              if (updateInfo.stage)
+                updateDetails.push(`Étape: ${updateInfo.stage}`);
+              if (updateInfo.notes.length > 0)
+                updateDetails.push(updateInfo.notes.join(", "));
+
+              if (updateDetails.length > 0) {
+                note += ` | ${updateDetails.join(" | ")}`;
+              }
+            }
           }
 
           // Mettre à jour le statut
@@ -267,8 +309,8 @@ export const updateClosedOpportunityStatus = async (url, reason) => {
           // Ajouter une note explicative
           const currentNotes = rows[i][13] || ""; // Notes existantes
           const updatedNotes = currentNotes
-            ? `${currentNotes} | Auto-fermé: ${note}`
-            : `Auto-fermé: ${note}`;
+            ? `${currentNotes} | Auto-détecté: ${note}`
+            : `Auto-détecté: ${note}`;
 
           await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
@@ -280,12 +322,17 @@ export const updateClosedOpportunityStatus = async (url, reason) => {
           });
 
           console.log(
-            `🔒 Opportunité auto-fermée: ${newStatus} - ${opportunity.title?.substring(
+            `📊 Opportunité mise à jour: ${newStatus} - ${rows[i][1]?.substring(
               0,
               50
             )}...`
           );
-          return { updated: true, newStatus, note };
+          return {
+            updated: true,
+            newStatus,
+            note,
+            previousStatus: currentStatus,
+          };
         } else {
           console.log(
             `⏭️ Opportunité déjà traitée (${currentStatus}): ${url.substring(
@@ -293,7 +340,7 @@ export const updateClosedOpportunityStatus = async (url, reason) => {
               50
             )}...`
           );
-          return { updated: false, reason: "already_processed" };
+          return { updated: false, reason: "already_processed", currentStatus };
         }
       }
     }
@@ -301,13 +348,15 @@ export const updateClosedOpportunityStatus = async (url, reason) => {
     console.log(`❓ URL non trouvée dans Sheets: ${url.substring(0, 50)}...`);
     return { updated: false, reason: "not_found" };
   } catch (error) {
-    console.error("❌ Erreur mise à jour statut fermé:", error);
+    console.error("❌ Erreur mise à jour statut:", error);
     return { updated: false, error: error.message };
   }
 };
 
 export const checkAndCloseOpportunities = async (opportunities) => {
+  let updatedCount = 0;
   let closedCount = 0;
+  let inProgressCount = 0;
   const results = [];
 
   for (const opportunity of opportunities) {
@@ -322,22 +371,44 @@ export const checkAndCloseOpportunities = async (opportunities) => {
         link_flair_text: opportunity.flair || "",
       };
 
-      const status = detectProjectStatus(mockSubmission);
+      const statusInfo = detectProjectStatus(mockSubmission);
 
-      if (status.isClosed) {
-        const updateResult = await updateClosedOpportunityStatus(
+      if (statusInfo.isClosed) {
+        const updateResult = await updateOpportunityStatus(
           opportunity.url,
-          status.reason
+          "FERMÉ",
+          statusInfo.reason
         );
 
         if (updateResult.updated) {
           closedCount++;
+          updatedCount++;
           results.push({
             url: opportunity.url,
             title: opportunity.title,
             action: "closed",
-            reason: status.reason,
+            reason: statusInfo.reason,
             newStatus: updateResult.newStatus,
+          });
+        }
+      } else if (statusInfo.isInProgress) {
+        const updateResult = await updateOpportunityStatus(
+          opportunity.url,
+          "EN_COURS",
+          statusInfo.reason,
+          statusInfo.updateInfo
+        );
+
+        if (updateResult.updated) {
+          inProgressCount++;
+          updatedCount++;
+          results.push({
+            url: opportunity.url,
+            title: opportunity.title,
+            action: "in_progress",
+            reason: statusInfo.reason,
+            newStatus: updateResult.newStatus,
+            updateInfo: statusInfo.updateInfo,
           });
         }
       }
@@ -349,7 +420,7 @@ export const checkAndCloseOpportunities = async (opportunities) => {
     }
   }
 
-  return { closedCount, results };
+  return { updatedCount, closedCount, inProgressCount, results };
 };
 
 export const autoCloseFoundOpportunities = async () => {

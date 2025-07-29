@@ -16,7 +16,7 @@ import {
   addOpportunityToSheet,
   initSpreadsheet,
   getNewOpportunities,
-  updateClosedOpportunityStatus,
+  updateOpportunityStatus,
   autoCloseFoundOpportunities,
 } from "./googleSheets.js";
 import { sendMorningReport, sendUrgentAlert } from "./emailService.js";
@@ -288,6 +288,7 @@ const processOpportunities = async (newJobs, guild) => {
 
   let processedCount = 0;
   let closedCount = 0;
+  let inProgressCount = 0;
 
   for (const job of newJobs) {
     try {
@@ -299,6 +300,57 @@ const processOpportunities = async (newJobs, guild) => {
       };
 
       const projectStatus = detectProjectStatus(mockSubmission);
+
+      // 🆕 VÉRIFIER SI LE PROJET EST SUPPRIMÉ
+      if (projectStatus.isDeleted) {
+        console.log(
+          `🗑️ Projet supprimé détecté: ${job.title.substring(0, 50)}... (${
+            projectStatus.reason
+          })`
+        );
+
+        const subredditMatch = job.url.match(/\/r\/([^/]+)\//);
+        const subreddit = subredditMatch ? subredditMatch[1] : "unknown";
+
+        const opportunityData = {
+          ...job,
+          subreddit: subreddit,
+        };
+
+        const sheetResult = await addOpportunityToSheet(opportunityData);
+
+        if (sheetResult === "added") {
+          // Marquer comme supprimé
+          await updateOpportunityStatus(job.url, "FERMÉ", projectStatus.reason);
+          closedCount++;
+        }
+
+        // Poster dans Discord avec indication "supprimé"
+        await redditChannel.send({
+          embeds: [
+            redditCard(
+              `🗑️ [SUPPRIMÉ] ${job.title}`,
+              job.url,
+              subreddit,
+              job.relevanceScore,
+              job.description,
+              job.numComments,
+              job.hoursAgo
+            ).setColor(0x666666), // Gris foncé pour les projets supprimés
+          ],
+        });
+
+        const deleteReason = projectStatus.details.deletedByUser
+          ? "utilisateur"
+          : "modérateurs";
+
+        await redditChannel.send(
+          `**🗑️ Post supprimé par ${deleteReason}**\n` +
+            `*Opportunité marquée comme supprimée dans Google Sheets*`
+        );
+
+        continue; // Passer au job suivant
+      }
 
       if (projectStatus.isClosed) {
         console.log(
@@ -320,7 +372,7 @@ const processOpportunities = async (newJobs, guild) => {
 
         if (sheetResult === "added") {
           // Immédiatement marquer comme fermé
-          await updateClosedOpportunityStatus(job.url, projectStatus.reason);
+          await updateOpportunityStatus(job.url, "FERMÉ", projectStatus.reason);
           closedCount++;
         }
 
@@ -343,6 +395,71 @@ const processOpportunities = async (newJobs, guild) => {
           `**🔒 Projet fermé détecté** (${projectStatus.reason})\n` +
             `*Cette opportunité a été automatiquement marquée comme fermée dans Google Sheets*`
         );
+
+        continue; // Passer au job suivant
+      }
+
+      // 🆕 VÉRIFIER SI LE PROJET EST EN COURS DE RÉVISION
+      if (projectStatus.isInProgress) {
+        console.log(
+          `📋 Projet en cours détecté: ${job.title.substring(0, 50)}... (${
+            projectStatus.reason
+          })`
+        );
+
+        const subredditMatch = job.url.match(/\/r\/([^/]+)\//);
+        const subreddit = subredditMatch ? subredditMatch[1] : "unknown";
+
+        const opportunityData = {
+          ...job,
+          subreddit: subreddit,
+        };
+
+        const sheetResult = await addOpportunityToSheet(opportunityData);
+
+        if (sheetResult === "added") {
+          // Marquer comme en cours
+          await updateOpportunityStatus(
+            job.url,
+            "EN_COURS",
+            projectStatus.reason,
+            projectStatus.updateInfo
+          );
+          inProgressCount++;
+        }
+
+        // Poster dans Discord avec indication "en cours"
+        await redditChannel.send({
+          embeds: [
+            redditCard(
+              `📋 [EN COURS] ${job.title}`,
+              job.url,
+              subreddit,
+              job.relevanceScore,
+              job.description,
+              job.numComments,
+              job.hoursAgo
+            ).setColor(0xffa500), // Orange pour les projets en cours
+          ],
+        });
+
+        // Afficher les infos d'update si disponibles
+        let updateMessage = `**📋 Projet en révision** (${projectStatus.reason})\n`;
+
+        if (projectStatus.updateInfo) {
+          const info = projectStatus.updateInfo;
+          if (info.timeline)
+            updateMessage += `⏰ **Timeline:** ${info.timeline}\n`;
+          if (info.responseCount)
+            updateMessage += `📊 **Réponses:** ${info.responseCount}\n`;
+          if (info.stage) updateMessage += `🎯 **Étape:** ${info.stage}\n`;
+          if (info.notes.length > 0)
+            updateMessage += `📝 **Notes:** ${info.notes.join(", ")}\n`;
+        }
+
+        updateMessage += `*Opportunité marquée comme "EN_COURS" dans Google Sheets*`;
+
+        await redditChannel.send(updateMessage);
 
         continue; // Passer au job suivant
       }
@@ -981,7 +1098,6 @@ client.on("messageCreate", async (message) => {
       break;
 
     case "test-closed":
-      const testUrl = "https://reddit.com/test";
       const testTitles = [
         "Looking for artist - FOUND thanks everyone!",
         "[HIRING] Character design needed - $300",

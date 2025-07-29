@@ -300,6 +300,41 @@ const detectProjectStatus = (submission) => {
     "solved",
     "done",
     "finished",
+    "going with someone",
+    "chosen an artist",
+    "selected an artist",
+  ];
+
+  const updateKeywords = [
+    "update:",
+    "edit:",
+    "going through responses",
+    "going through all the responses",
+    "reviewing responses",
+    "looking through responses",
+    "working on going through",
+    "reaching out to folks",
+    "reaching out to people",
+    "contacting artists",
+    "reviewing applications",
+    "taking a couple days",
+    "might take us",
+    "will take some time",
+    "need more time",
+    "overwhelmed with responses",
+    "lots of responses",
+    "many responses",
+    "tons of responses",
+    "still deciding",
+    "still choosing",
+    "making a decision",
+    "decision soon",
+    "will update soon",
+    "update coming",
+    "narrowing down",
+    "shortlisting",
+    "final decision",
+    "almost decided",
   ];
 
   // Patterns spécifiques
@@ -317,19 +352,39 @@ const detectProjectStatus = (submission) => {
     /update.*hired/,
     /thanks.*everyone.*found/,
     /thank.*you.*all.*found/,
+    /going with.*artist/,
+    /chosen.*artist/,
+    /selected.*artist/,
   ];
 
-  // Vérifier les mots-clés
+  // 🆕 PATTERNS POUR UPDATE/EN_COURS
+  const updatePatterns = [
+    /update:.*going through/,
+    /edit:.*going through/,
+    /update:.*reviewing/,
+    /edit:.*reviewing/,
+    /update:.*reaching out/,
+    /edit:.*reaching out/,
+    /update:.*overwhelmed/,
+    /update:.*lots of/,
+    /update:.*many/,
+    /going through.*responses/,
+    /reviewing.*responses/,
+    /reaching out.*folks/,
+    /take.*couple.*days/,
+    /need.*more.*time/,
+    /still.*deciding/,
+    /making.*decision/,
+    /narrowing.*down/,
+    /shortlisting/,
+  ];
+
   const hasFoundKeyword = foundKeywords.some((keyword) =>
     fullText.includes(keyword)
   );
-
-  // Vérifier les patterns
   const hasFoundPattern = foundPatterns.some((pattern) =>
     pattern.test(fullText)
   );
-
-  // Vérifier le flair
   const hasFoundFlair =
     flair.includes("found") ||
     flair.includes("filled") ||
@@ -337,22 +392,45 @@ const detectProjectStatus = (submission) => {
     flair.includes("hired") ||
     flair.includes("complete");
 
-  // Analyser les commentaires du poster pour voir s'il a trouvé quelqu'un
-  let hasFoundComment = false;
-  // Note: Pour une analyse complète des commentaires, il faudrait une requête supplémentaire
-  // Ici on se concentre sur le titre/description/flair
+  // 🆕 VÉRIFIER LES UPDATE
+  const hasUpdateKeyword = updateKeywords.some((keyword) =>
+    fullText.includes(keyword)
+  );
+  const hasUpdatePattern = updatePatterns.some((pattern) =>
+    pattern.test(fullText)
+  );
+
+  // Vérifier si c'est un update mais pas encore fermé
+  const isInProgress =
+    (hasUpdateKeyword || hasUpdatePattern) &&
+    !hasFoundKeyword &&
+    !hasFoundPattern &&
+    !hasFoundFlair;
 
   const isProjectClosed = hasFoundKeyword || hasFoundPattern || hasFoundFlair;
 
-  return {
-    isClosed: isProjectClosed,
-    reason: hasFoundFlair
+  // Déterminer le statut
+  let status = "OUVERT";
+  let reason = "OPEN";
+
+  if (isProjectClosed) {
+    status = "FERMÉ";
+    reason = hasFoundFlair
       ? "FLAIR_FOUND"
       : hasFoundPattern
       ? "PATTERN_FOUND"
-      : hasFoundKeyword
-      ? "KEYWORD_FOUND"
-      : "OPEN",
+      : "KEYWORD_FOUND";
+  } else if (isInProgress) {
+    status = "EN_COURS";
+    reason = hasUpdatePattern ? "UPDATE_PATTERN" : "UPDATE_KEYWORD";
+  }
+
+  return {
+    isClosed: isProjectClosed,
+    isInProgress: isInProgress,
+    isDeleted: false,
+    status: status,
+    reason: reason,
     details: {
       foundInTitle: foundKeywords.some((keyword) => title.includes(keyword)),
       foundInDescription: foundKeywords.some((keyword) =>
@@ -360,46 +438,84 @@ const detectProjectStatus = (submission) => {
       ),
       foundInFlair: hasFoundFlair,
       foundPattern: hasFoundPattern,
+      // 🆕 DÉTAILS UPDATE
+      updateInTitle: updateKeywords.some((keyword) => title.includes(keyword)),
+      updateInDescription: updateKeywords.some((keyword) =>
+        description.includes(keyword)
+      ),
+      updatePattern: hasUpdatePattern,
+      // 🆕 DÉTAILS SUPPRESSION
+      deletedByUser: false,
+      removedByMods: false,
     },
+    // 🆕 INFORMATIONS EXTRAITES DE L'UPDATE
+    updateInfo: isInProgress ? extractUpdateInfo(fullText) : null,
   };
 };
 
-const checkCommentsForStatus = async (submission, r) => {
-  try {
-    // Charger les commentaires (limitons à 10 pour éviter trop d'API calls)
-    const comments = await submission.comments.fetchMore({ amount: 10 });
+const extractUpdateInfo = (text) => {
+  const info = {
+    timeline: null,
+    responseCount: null,
+    stage: null,
+    notes: [],
+  };
 
-    const authorName = submission.author.name;
-    let foundByAuthor = false;
+  // Extraire timeline
+  const timelinePatterns = [
+    /couple.*days?/,
+    /few.*days?/,
+    /(\d+).*days?/,
+    /week/,
+    /soon/,
+    /taking.*time/,
+  ];
 
-    for (const comment of comments) {
-      if (comment.author && comment.author.name === authorName) {
-        const commentText = comment.body.toLowerCase();
-
-        const foundInComments = [
-          "thanks everyone",
-          "thank you all",
-          "found someone",
-          "artist found",
-          "position filled",
-          "hired someone",
-          "no longer needed",
-          "closed",
-          "found an artist",
-        ];
-
-        if (foundInComments.some((phrase) => commentText.includes(phrase))) {
-          foundByAuthor = true;
-          break;
-        }
-      }
+  for (const pattern of timelinePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      info.timeline = match[0];
+      break;
     }
-
-    return foundByAuthor;
-  } catch (error) {
-    console.error("❌ Erreur analyse commentaires:", error);
-    return false;
   }
+
+  // Extraire nombre de réponses
+  const responsePatterns = [
+    /lots of responses/,
+    /many responses/,
+    /tons of responses/,
+    /overwhelmed.*responses/,
+    /(\d+).*responses/,
+  ];
+
+  for (const pattern of responsePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      info.responseCount = match[0];
+      break;
+    }
+  }
+
+  // Déterminer l'étape
+  if (text.includes("going through") || text.includes("reviewing")) {
+    info.stage = "REVIEWING";
+  } else if (text.includes("reaching out") || text.includes("contacting")) {
+    info.stage = "CONTACTING";
+  } else if (text.includes("deciding") || text.includes("choosing")) {
+    info.stage = "DECIDING";
+  } else if (text.includes("narrowing") || text.includes("shortlisting")) {
+    info.stage = "SHORTLISTING";
+  }
+
+  // Notes supplémentaires
+  if (text.includes("overwhelmed")) {
+    info.notes.push("Overwhelmed with responses");
+  }
+  if (text.includes("thank")) {
+    info.notes.push("Thanking respondents");
+  }
+
+  return info;
 };
 
 // 🆕 FONCTION POUR DÉTECTER LES "FOR HIRE" DÉGUISÉS
