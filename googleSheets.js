@@ -882,6 +882,213 @@ export const markOpportunityAsProcessed = async (url, statut = "TRAITÉ") => {
   }
 };
 
+export const fetchRedditPostContent = async (url) => {
+  try {
+    // Extraire l'ID du post depuis l'URL
+    const postIdMatch = url.match(/\/comments\/([a-zA-Z0-9]+)\//);
+    if (!postIdMatch) {
+      throw new Error("URL invalide");
+    }
+
+    const postId = postIdMatch[1];
+
+    // Utiliser snoowrap pour récupérer le post
+    const r = new snoowrap({
+      userAgent: "ArtJobBot/1.0.0 by YourUsername",
+      clientId: process.env.clientId,
+      clientSecret: process.env.clientSecret,
+      username: process.env.username,
+      password: process.env.password,
+    });
+
+    const submission = await r.getSubmission(postId);
+
+    return {
+      success: true,
+      submission: {
+        title: submission.title,
+        selftext: submission.selftext || "",
+        link_flair_text: submission.link_flair_text || "",
+        removed: submission.removed || false,
+        locked: submission.locked || false,
+        archived: submission.archived || false,
+        author: submission.author
+          ? { name: submission.author.name }
+          : { name: "[deleted]" },
+        removed_by_category: submission.removed_by_category || null,
+      },
+    };
+  } catch (error) {
+    console.error(`❌ Erreur fetch Reddit ${url}:`, error.message);
+    return {
+      success: false,
+      error: error.message,
+      // Fallback: utiliser seulement le titre
+      submission: null,
+    };
+  }
+};
+
+// Version améliorée du nettoyage automatique
+export const autoCloseFoundOpportunitiesEnhanced = async () => {
+  try {
+    console.log("🧹 Début du nettoyage automatique AMÉLIORÉ...");
+
+    if (!sheets) {
+      const authSuccess = await initGoogleAuth();
+      if (!authSuccess) return { success: false, error: "Auth failed" };
+    }
+
+    await ensureOpportunitiesSheetExists();
+
+    // Récupérer toutes les opportunités avec statut NOUVEAU
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Opportunities!A:P",
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length <= 1) {
+      return { success: true, message: "Aucune opportunité à vérifier" };
+    }
+
+    // Filtrer les opportunités encore ouvertes (statut NOUVEAU)
+    const openOpportunities = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row[9] === "NOUVEAU") {
+        // Colonne J = Statut
+        openOpportunities.push({
+          title: row[1],
+          url: row[3],
+          sheetRow: i + 1, // Pour debug
+        });
+      }
+    }
+
+    console.log(
+      `🔍 ${openOpportunities.length} opportunités ouvertes à vérifier`
+    );
+
+    if (openOpportunities.length === 0) {
+      return { success: true, message: "Aucune opportunité ouverte" };
+    }
+
+    let updatedCount = 0;
+    let closedCount = 0;
+    let inProgressCount = 0;
+    let errorCount = 0;
+    const results = [];
+
+    // 🆕 VÉRIFIER CHAQUE OPPORTUNITÉ AVEC LE CONTENU REDDIT RÉEL
+    for (const opportunity of openOpportunities) {
+      try {
+        console.log(
+          `🔍 Vérification: ${opportunity.title.substring(0, 50)}...`
+        );
+
+        // Récupérer le contenu Reddit en temps réel
+        const redditContent = await fetchRedditPostContent(opportunity.url);
+
+        let statusInfo;
+
+        if (redditContent.success && redditContent.submission) {
+          // Utiliser le contenu Reddit réel
+          const { detectProjectStatus } = await import("./getReddit.js");
+          statusInfo = detectProjectStatus(redditContent.submission);
+        } else {
+          // Fallback: utiliser seulement le titre du Google Sheets
+          console.log(
+            `⚠️ Fallback pour: ${opportunity.title.substring(0, 30)}... (${
+              redditContent.error
+            })`
+          );
+
+          const mockSubmission = {
+            title: opportunity.title,
+            selftext: "",
+            link_flair_text: "",
+            removed: false,
+            author: { name: "unknown" },
+          };
+
+          const { detectProjectStatus } = await import("./getReddit.js");
+          statusInfo = detectProjectStatus(mockSubmission);
+        }
+
+        // Mettre à jour si nécessaire
+        if (statusInfo.isClosed || statusInfo.isDeleted) {
+          const updateResult = await updateOpportunityStatus(
+            opportunity.url,
+            statusInfo.isDeleted ? "FERMÉ" : "FERMÉ",
+            statusInfo.reason
+          );
+
+          if (updateResult.updated) {
+            closedCount++;
+            updatedCount++;
+            results.push({
+              url: opportunity.url,
+              title: opportunity.title,
+              action: "closed",
+              reason: statusInfo.reason,
+              newStatus: updateResult.newStatus,
+              method: redditContent.success ? "reddit_fetch" : "title_only",
+            });
+          }
+        } else if (statusInfo.isInProgress) {
+          const updateResult = await updateOpportunityStatus(
+            opportunity.url,
+            "EN_COURS",
+            statusInfo.reason,
+            statusInfo.updateInfo
+          );
+
+          if (updateResult.updated) {
+            inProgressCount++;
+            updatedCount++;
+            results.push({
+              url: opportunity.url,
+              title: opportunity.title,
+              action: "in_progress",
+              reason: statusInfo.reason,
+              newStatus: updateResult.newStatus,
+              updateInfo: statusInfo.updateInfo,
+              method: redditContent.success ? "reddit_fetch" : "title_only",
+            });
+          }
+        }
+
+        // Petite pause pour éviter le rate limiting Reddit
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(
+          `❌ Erreur traitement ${opportunity.title?.substring(0, 30)}:`,
+          error
+        );
+        errorCount++;
+      }
+    }
+
+    console.log(
+      `✅ Nettoyage terminé: ${closedCount} fermées, ${inProgressCount} en cours, ${errorCount} erreurs`
+    );
+
+    return {
+      success: true,
+      closedCount,
+      inProgressCount,
+      updatedCount,
+      errorCount,
+      totalChecked: openOpportunities.length,
+      details: results,
+    };
+  } catch (error) {
+    console.error("❌ Erreur nettoyage auto amélioré:", error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Initialiser le spreadsheet
 export const initSpreadsheet = async () => {
   try {

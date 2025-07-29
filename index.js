@@ -18,6 +18,7 @@ import {
   getNewOpportunities,
   updateOpportunityStatus,
   autoCloseFoundOpportunities,
+  autoCloseFoundOpportunitiesEnhanced,
 } from "./googleSheets.js";
 import { sendMorningReport, sendUrgentAlert } from "./emailService.js";
 import {
@@ -1135,6 +1136,58 @@ client.on("messageCreate", async (message) => {
         message.channel.send(
           `${result} "${title}"\n` + `Raison: ${status.reason}`
         );
+      }
+      break;
+
+    case "check-closed-deep":
+      message.channel.send(
+        "🔍 Vérification APPROFONDIE des projets fermés (avec fetch Reddit)..."
+      );
+
+      try {
+        const result = await autoCloseFoundOpportunitiesEnhanced();
+
+        if (result.success) {
+          let statusMessage = `✅ **Nettoyage approfondi terminé!**\n`;
+          statusMessage += `📊 **Total vérifié:** ${result.totalChecked}\n`;
+
+          if (result.closedCount > 0) {
+            statusMessage += `🔒 **Fermés:** ${result.closedCount}\n`;
+          }
+          if (result.inProgressCount > 0) {
+            statusMessage += `📋 **En cours:** ${result.inProgressCount}\n`;
+          }
+          if (result.errorCount > 0) {
+            statusMessage += `❌ **Erreurs:** ${result.errorCount}\n`;
+          }
+
+          message.channel.send(statusMessage);
+
+          // Afficher les détails
+          if (result.details && result.details.length > 0) {
+            for (const detail of result.details.slice(0, 5)) {
+              // Limiter à 5
+              const emoji = detail.action === "closed" ? "🔒" : "📋";
+              const method =
+                detail.method === "reddit_fetch" ? "🌐 Reddit" : "📋 Titre";
+
+              message.channel.send(
+                `${emoji} **${detail.title.substring(0, 40)}...**\n` +
+                  `└ ${detail.newStatus} (${method})`
+              );
+            }
+
+            if (result.details.length > 5) {
+              message.channel.send(
+                `... et ${result.details.length - 5} autres mises à jour`
+              );
+            }
+          }
+        } else {
+          message.channel.send(`❌ Erreur: ${result.error}`);
+        }
+      } catch (error) {
+        message.channel.send(`❌ Erreur vérification: ${error.message}`);
       }
       break;
 
