@@ -1,4 +1,7 @@
+import dotenv from "dotenv";
 import Groq from "groq-sdk";
+
+dotenv.config();
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
@@ -839,6 +842,6 @@ export const getDailyStatsReport = () => {
 • Échecs: ${todayStats.failures}
 • Tokens: ${todayStats.tokens}
 • Taux succès: ${
-  todayStats.requests > 0 ? Math.round((todayStats.successes / todayStats.requests) * 100) : 0
-}%`;
+    todayStats.requests > 0 ? Math.round((todayStats.successes / todayStats.requests) * 100) : 0
+  }%`;
 };

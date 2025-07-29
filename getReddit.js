@@ -267,10 +267,30 @@ const adjustScoreForTimingAndCompetition = (
   return adjustedScore;
 };
 
-const detectProjectStatus = submission => {
-  const title = submission.title.toLowerCase();
-  const description = (submission.selftext || "").toLowerCase();
-  const flair = (submission.link_flair_text || "").toLowerCase();
+const detectProjectStatus = async submission => {
+  // ✅ CORRECTION: Attendre les propriétés snoowrap avec gestion d'erreur
+  let title, description, flair;
+
+  try {
+    // Attendre toutes les propriétés en parallèle pour optimiser
+    const [titleRaw, descriptionRaw, flairRaw] = await Promise.all([
+      submission.title,
+      submission.selftext,
+      submission.link_flair_text
+    ]);
+
+    // Conversion sécurisée en string et toLowerCase
+    title = (titleRaw || "").toString().toLowerCase();
+    description = (descriptionRaw || "").toString().toLowerCase();
+    flair = (flairRaw || "").toString().toLowerCase();
+  } catch (error) {
+    console.error("Erreur récupération propriétés Reddit:", error);
+    // Valeurs par défaut en cas d'erreur
+    title = "";
+    description = "";
+    flair = "";
+  }
+
   const fullText = title + " " + description + " " + flair;
 
   // Mots-clés indiquant que l'artiste a été trouvé
@@ -761,7 +781,7 @@ export const getReddit = async () => {
       {
         name: "HungryArtists",
         params: {
-          query: "flair:\"Hiring\" -flair:\"For Hire\"",
+          query: 'flair:"Hiring" -flair:"For Hire"',
           sort: "new",
           restrict_sr: "on",
           limit: 10
@@ -770,7 +790,7 @@ export const getReddit = async () => {
       {
         name: "artcommissions",
         params: {
-          query: "flair:\"[Patron]\" OR (hiring NOT \"for hire\")",
+          query: 'flair:"[Patron]" OR (hiring NOT "for hire")',
           sort: "new",
           restrict_sr: "on",
           limit: 10
@@ -779,7 +799,7 @@ export const getReddit = async () => {
       {
         name: "starvingartists",
         params: {
-          query: "(Request OR Hiring OR Commission) -\"For Hire\" -\"for hire\"",
+          query: '(Request OR Hiring OR Commission) -"For Hire" -"for hire"',
           sort: "new",
           restrict_sr: "on",
           limit: 8
@@ -788,7 +808,7 @@ export const getReddit = async () => {
       {
         name: "hireanartist",
         params: {
-          query: "flair:\"[Hiring]-project\" OR flair:\"[Hiring]-one-off\"",
+          query: 'flair:"[Hiring]-project" OR flair:"[Hiring]-one-off"',
           sort: "new",
           restrict_sr: "on",
           limit: 10
