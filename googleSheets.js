@@ -928,9 +928,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
         console.log(`🔍 Vérification: ${opportunity.title.substring(0, 50)}...`);
 
         // Récupérer le contenu Reddit en temps réel
-        const redditContent = await fetchRedditPostContent(
-          "https://www.reddit.com/r/HungryArtists/comments/1m5whja/hiring_fantasy_character_illustration_commission/"
-        );
+        const redditContent = await fetchRedditPostContent(opportunity.url);
 
         let statusInfo;
 
