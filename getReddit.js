@@ -267,33 +267,40 @@ const adjustScoreForTimingAndCompetition = (
   return adjustedScore;
 };
 
-const detectProjectStatus = async submission => {
-  // ✅ CORRECTION: Attendre les propriétés snoowrap avec gestion d'erreur
-  let title, description, flair;
-
-  try {
-    // Attendre toutes les propriétés en parallèle pour optimiser
-    const [titleRaw, descriptionRaw, flairRaw] = await Promise.all([
-      submission.title,
-      submission.selftext,
-      submission.link_flair_text
-    ]);
-
-    // Conversion sécurisée en string et toLowerCase
-    title = (titleRaw || "").toString().toLowerCase();
-    description = (descriptionRaw || "").toString().toLowerCase();
-    flair = (flairRaw || "").toString().toLowerCase();
-  } catch (error) {
-    console.error("Erreur récupération propriétés Reddit:", error);
-    // Valeurs par défaut en cas d'erreur
-    title = "";
-    description = "";
-    flair = "";
-  }
-
+const detectProjectStatus = submission => {
+  // Les propriétés snoowrap sont déjà des valeurs, pas des Promises
+  const title = (submission.title || "").toString().toLowerCase();
+  const description = (submission.selftext || "").toString().toLowerCase();
+  const flair = (submission.link_flair_text || "").toString().toLowerCase();
   const fullText = title + " " + description + " " + flair;
 
-  // Mots-clés indiquant que l'artiste a été trouvé
+  console.log(`🔍 Analyse statut pour: "${title.substring(0, 50)}..."`);
+
+  // 🆕 VÉRIFIER SI LE POST EST SUPPRIMÉ FIRST
+  const isDeleted =
+    description === "[deleted]" ||
+    description === "[removed]" ||
+    submission.author?.name === "[deleted]" ||
+    submission.removed_by_category === "deleted" ||
+    submission.removed === true;
+
+  if (isDeleted) {
+    console.log(`🗑️ Post supprimé détecté: ${isDeleted ? "Oui" : "Non"}`);
+    return {
+      isClosed: true,
+      isInProgress: false,
+      isDeleted: true,
+      status: "SUPPRIMÉ",
+      reason: description === "[deleted]" ? "USER_DELETED" : "MOD_REMOVED",
+      details: {
+        deletedByUser: description === "[deleted]" || submission.author?.name === "[deleted]",
+        removedByMods: submission.removed === true
+      },
+      updateInfo: null
+    };
+  }
+
+  // Mots-clés indiquant que l'artiste a été trouvé (FERMÉ)
   const foundKeywords = [
     "found",
     "artist found",
@@ -324,6 +331,7 @@ const detectProjectStatus = async submission => {
     "selected an artist"
   ];
 
+  // 🆕 DÉTECTION DES UPDATE (statut EN_COURS)
   const updateKeywords = [
     "update:",
     "edit:",
@@ -356,48 +364,49 @@ const detectProjectStatus = async submission => {
     "almost decided"
   ];
 
-  // Patterns spécifiques
+  // Patterns spécifiques pour FERMÉ
   const foundPatterns = [
-    /\[found\]/,
-    /\[filled\]/,
-    /\[closed\]/,
-    /\[hired\]/,
-    /\[complete\]/,
-    /edit.*found/,
-    /update.*found/,
-    /edit.*filled/,
-    /update.*filled/,
-    /edit.*hired/,
-    /update.*hired/,
-    /thanks.*everyone.*found/,
-    /thank.*you.*all.*found/,
-    /going with.*artist/,
-    /chosen.*artist/,
-    /selected.*artist/
+    /\[found\]/i,
+    /\[filled\]/i,
+    /\[closed\]/i,
+    /\[hired\]/i,
+    /\[complete\]/i,
+    /edit.*found/i,
+    /update.*found/i,
+    /edit.*filled/i,
+    /update.*filled/i,
+    /edit.*hired/i,
+    /update.*hired/i,
+    /thanks.*everyone.*found/i,
+    /thank.*you.*all.*found/i,
+    /going with.*artist/i,
+    /chosen.*artist/i,
+    /selected.*artist/i
   ];
 
   // 🆕 PATTERNS POUR UPDATE/EN_COURS
   const updatePatterns = [
-    /update:.*going through/,
-    /edit:.*going through/,
-    /update:.*reviewing/,
-    /edit:.*reviewing/,
-    /update:.*reaching out/,
-    /edit:.*reaching out/,
-    /update:.*overwhelmed/,
-    /update:.*lots of/,
-    /update:.*many/,
-    /going through.*responses/,
-    /reviewing.*responses/,
-    /reaching out.*folks/,
-    /take.*couple.*days/,
-    /need.*more.*time/,
-    /still.*deciding/,
-    /making.*decision/,
-    /narrowing.*down/,
-    /shortlisting/
+    /update:.*going through/i,
+    /edit:.*going through/i,
+    /update:.*reviewing/i,
+    /edit:.*reviewing/i,
+    /update:.*reaching out/i,
+    /edit:.*reaching out/i,
+    /update:.*overwhelmed/i,
+    /update:.*lots of/i,
+    /update:.*many/i,
+    /going through.*responses/i,
+    /reviewing.*responses/i,
+    /reaching out.*folks/i,
+    /take.*couple.*days/i,
+    /need.*more.*time/i,
+    /still.*deciding/i,
+    /making.*decision/i,
+    /narrowing.*down/i,
+    /shortlisting/i
   ];
 
+  // Vérifier les différents états
   const hasFoundKeyword = foundKeywords.some(keyword => fullText.includes(keyword));
   const hasFoundPattern = foundPatterns.some(pattern => pattern.test(fullText));
   const hasFoundFlair =
@@ -420,6 +429,15 @@ const detectProjectStatus = async submission => {
 
   const isProjectClosed = hasFoundKeyword || hasFoundPattern || hasFoundFlair;
 
+  // 🆕 LOGGING POUR DEBUG
+  if (hasFoundKeyword)
+    console.log(`🔒 Keyword trouvé: ${foundKeywords.find(k => fullText.includes(k))}`);
+  if (hasFoundPattern) console.log(`🔒 Pattern trouvé: Oui`);
+  if (hasFoundFlair) console.log(`🔒 Flair trouvé: ${flair}`);
+  if (hasUpdateKeyword)
+    console.log(`📋 Update keyword: ${updateKeywords.find(k => fullText.includes(k))}`);
+  if (hasUpdatePattern) console.log(`📋 Update pattern: Oui`);
+
   // Déterminer le statut
   let status = "OUVERT";
   let reason = "OPEN";
@@ -431,6 +449,8 @@ const detectProjectStatus = async submission => {
     status = "EN_COURS";
     reason = hasUpdatePattern ? "UPDATE_PATTERN" : "UPDATE_KEYWORD";
   }
+
+  console.log(`📊 Résultat: ${status} (${reason})`);
 
   return {
     isClosed: isProjectClosed,
@@ -451,12 +471,13 @@ const detectProjectStatus = async submission => {
       deletedByUser: false,
       removedByMods: false
     },
-    // 🆕 INFORMATIONS EXTRAITES DE L'UPDATE
-    updateInfo: isInProgress ? extractUpdateInfo(fullText) : null
+    // 🆕 INFORMATIONS EXTRAITES DE L'UPDATE (SIMPLIFIÉES)
+    updateInfo: isInProgress ? extractSimpleUpdateInfo(fullText) : null
   };
 };
 
-const extractUpdateInfo = text => {
+// 🆕 FONCTION SIMPLIFIÉE POUR EXTRAIRE LES INFOS D'UPDATE
+const extractSimpleUpdateInfo = text => {
   const info = {
     timeline: null,
     responseCount: null,
@@ -464,39 +485,22 @@ const extractUpdateInfo = text => {
     notes: []
   };
 
-  // Extraire timeline
-  const timelinePatterns = [
-    /couple.*days?/,
-    /few.*days?/,
-    /(\d+).*days?/,
-    /week/,
-    /soon/,
-    /taking.*time/
-  ];
-
-  for (const pattern of timelinePatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      info.timeline = match[0];
-      break;
-    }
+  // Extraire timeline simple
+  if (text.includes("couple days") || text.includes("couple of days")) {
+    info.timeline = "couple of days";
+  } else if (text.includes("few days")) {
+    info.timeline = "few days";
+  } else if (text.includes("week")) {
+    info.timeline = "about a week";
+  } else if (text.includes("soon")) {
+    info.timeline = "soon";
   }
 
-  // Extraire nombre de réponses
-  const responsePatterns = [
-    /lots of responses/,
-    /many responses/,
-    /tons of responses/,
-    /overwhelmed.*responses/,
-    /(\d+).*responses/
-  ];
-
-  for (const pattern of responsePatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      info.responseCount = match[0];
-      break;
-    }
+  // Extraire info sur les réponses
+  if (text.includes("lots of responses") || text.includes("many responses")) {
+    info.responseCount = "many responses";
+  } else if (text.includes("overwhelmed")) {
+    info.responseCount = "overwhelmed with responses";
   }
 
   // Déterminer l'étape
@@ -506,16 +510,6 @@ const extractUpdateInfo = text => {
     info.stage = "CONTACTING";
   } else if (text.includes("deciding") || text.includes("choosing")) {
     info.stage = "DECIDING";
-  } else if (text.includes("narrowing") || text.includes("shortlisting")) {
-    info.stage = "SHORTLISTING";
-  }
-
-  // Notes supplémentaires
-  if (text.includes("overwhelmed")) {
-    info.notes.push("Overwhelmed with responses");
-  }
-  if (text.includes("thank")) {
-    info.notes.push("Thanking respondents");
   }
 
   return info;
@@ -781,7 +775,7 @@ export const getReddit = async () => {
       {
         name: "HungryArtists",
         params: {
-          query: "flair:\"Hiring\" -flair:\"For Hire\"",
+          query: 'flair:"Hiring" -flair:"For Hire"',
           sort: "new",
           restrict_sr: "on",
           limit: 10
@@ -790,7 +784,7 @@ export const getReddit = async () => {
       {
         name: "artcommissions",
         params: {
-          query: "flair:\"[Patron]\" OR (hiring NOT \"for hire\")",
+          query: 'flair:"[Patron]" OR (hiring NOT "for hire")',
           sort: "new",
           restrict_sr: "on",
           limit: 10
@@ -799,7 +793,7 @@ export const getReddit = async () => {
       {
         name: "starvingartists",
         params: {
-          query: "(Request OR Hiring OR Commission) -\"For Hire\" -\"for hire\"",
+          query: '(Request OR Hiring OR Commission) -"For Hire" -"for hire"',
           sort: "new",
           restrict_sr: "on",
           limit: 8
@@ -808,7 +802,7 @@ export const getReddit = async () => {
       {
         name: "hireanartist",
         params: {
-          query: "flair:\"[Hiring]-project\" OR flair:\"[Hiring]-one-off\"",
+          query: 'flair:"[Hiring]-project" OR flair:"[Hiring]-one-off"',
           sort: "new",
           restrict_sr: "on",
           limit: 10
