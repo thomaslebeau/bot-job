@@ -13,44 +13,50 @@ const compat = new FlatCompat({
   allConfig: js.configs.all
 });
 
-export default defineConfig([globalIgnores([
-  "**/node_modules/",
-  "**/dist/",
-  "**/build/",
-  "**/*.min.js",
-  "**/processed_jobs.json"
-]), {
-  extends: compat.extends("eslint:recommended"),
+export default defineConfig([
+  globalIgnores([
+    "**/node_modules/",
+    "**/dist/",
+    "**/build/",
+    "**/*.min.js",
+    "**/processed_jobs.json"
+  ]),
+  {
+    extends: compat.extends("eslint:recommended"),
 
-  languageOptions: {
-    globals: {
-      ...globals.node
+    languageOptions: {
+      globals: {
+        ...globals.node
+      },
+
+      ecmaVersion: "latest",
+      sourceType: "module"
     },
 
-    ecmaVersion: "latest",
-    sourceType: "module"
-  },
+    rules: {
+      "no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_"
+        }
+      ],
 
-  rules: {
-    "no-unused-vars": ["error", {
-      argsIgnorePattern: "^_",
-      varsIgnorePattern: "^_"
-    }],
-
-    "no-undef": "error",
-    "no-unreachable": "error",
-    "no-duplicate-imports": "error",
-    "no-console": "off",
-    indent: ["warn", 2],
-    quotes: ["warn", "double"],
-    semi: ["warn", "always"],
-    "comma-dangle": ["warn", "never"],
-    "no-trailing-spaces": "warn",
-    "eol-last": "warn",
-    "no-eval": "error",
-    "no-implied-eval": "error",
-    "no-new-func": "error",
-    "require-await": "warn",
-    "no-async-promise-executor": "error"
+      "no-undef": "error",
+      "no-unreachable": "error",
+      "no-duplicate-imports": "error",
+      "no-console": "off",
+      indent: ["warn", 2],
+      quotes: ["warn", "double"],
+      semi: ["warn", "always"],
+      "comma-dangle": ["warn", "never"],
+      "no-trailing-spaces": "warn",
+      "eol-last": "warn",
+      "no-eval": "error",
+      "no-implied-eval": "error",
+      "no-new-func": "error",
+      "require-await": "warn",
+      "no-async-promise-executor": "error"
+    }
   }
-}]);
+]);

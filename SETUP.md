@@ -163,7 +163,7 @@ Vous recevrez un email d'alerte immédiate si :
 ```javascript
 // VOS SPÉCIALITÉS PRIORITAIRES
 const highPriorityKeywords = {
-  votre_specialite: 20,
+  votre_specialite: 20
   // ...
 };
 ```

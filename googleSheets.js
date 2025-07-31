@@ -180,7 +180,7 @@ const createHeaders = async () => {
       }
     });
 
-    console.log('✅ Headers Google Sheets créés dans la feuille "Opportunities"');
+    console.log("✅ Headers Google Sheets créés dans la feuille Opportunities");
   } catch (error) {
     console.error("❌ Erreur création headers:", error);
     throw error; // Propager l'erreur pour debugging

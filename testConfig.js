@@ -96,7 +96,7 @@ async function testGoogleSheets() {
         console.log("💡 Problème de permissions");
         console.log("📧 Avez-vous partagé le Google Sheet avec:", process.env.GOOGLE_CLIENT_EMAIL);
         console.log(
-          "🔧 Dans Google Sheets → Partager → Ajouter cette adresse avec permissions \"Éditeur\""
+          '🔧 Dans Google Sheets → Partager → Ajouter cette adresse avec permissions "Éditeur"'
         );
       }
       throw accessError;
