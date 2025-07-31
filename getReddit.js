@@ -432,11 +432,11 @@ const detectProjectStatus = submission => {
   // 🆕 LOGGING POUR DEBUG
   if (hasFoundKeyword)
     console.log(`🔒 Keyword trouvé: ${foundKeywords.find(k => fullText.includes(k))}`);
-  if (hasFoundPattern) console.log(`🔒 Pattern trouvé: Oui`);
+  if (hasFoundPattern) console.log("🔒 Pattern trouvé: Oui");
   if (hasFoundFlair) console.log(`🔒 Flair trouvé: ${flair}`);
   if (hasUpdateKeyword)
     console.log(`📋 Update keyword: ${updateKeywords.find(k => fullText.includes(k))}`);
-  if (hasUpdatePattern) console.log(`📋 Update pattern: Oui`);
+  if (hasUpdatePattern) console.log("📋 Update pattern: Oui");
 
   // Déterminer le statut
   let status = "OUVERT";
