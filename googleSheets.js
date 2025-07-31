@@ -330,9 +330,6 @@ export const checkAndUpdateOpportunities = async opportunities => {
 
   for (const opportunity of opportunities) {
     try {
-      // Importer les fonctions de détection depuis getReddit.js
-      const { detectProjectStatus } = await import("./getReddit.js");
-
       // Simuler un objet submission pour la détection
       const mockSubmission = {
         title: opportunity.title,
@@ -340,7 +337,7 @@ export const checkAndUpdateOpportunities = async opportunities => {
         link_flair_text: opportunity.flair || ""
       };
 
-      const statusInfo = detectProjectStatus(mockSubmission);
+      const statusInfo = await detectProjectStatus(mockSubmission);
 
       if (statusInfo.isClosed) {
         const updateResult = await updateOpportunityStatus(
@@ -934,7 +931,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
 
         if (redditContent.success && redditContent.submission) {
           // Utiliser le contenu Reddit réel
-          statusInfo = detectProjectStatus(redditContent.submission);
+          statusInfo = await detectProjectStatus(redditContent.submission);
           console.log("🔄 Résultat détection:", statusInfo);
         } else {
           // Fallback: utiliser seulement le titre du Google Sheets
@@ -950,7 +947,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
             author: { name: "unknown" }
           };
 
-          statusInfo = detectProjectStatus(mockSubmission);
+          statusInfo = await detectProjectStatus(mockSubmission);
           console.log("🔄 Résultat détection:", statusInfo);
         }
 

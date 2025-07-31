@@ -283,7 +283,7 @@ const processOpportunities = async (newJobs, guild) => {
         link_flair_text: job.flair || ""
       };
 
-      const projectStatus = detectProjectStatus(mockSubmission);
+      const projectStatus = await detectProjectStatus(mockSubmission);
 
       // 🆕 VÉRIFIER SI LE PROJET EST SUPPRIMÉ
       if (projectStatus.isDeleted) {
@@ -1051,7 +1051,7 @@ client.on("messageCreate", async message => {
           link_flair_text: ""
         };
 
-        const status = detectProjectStatus(mockSubmission);
+        const status = await detectProjectStatus(mockSubmission);
         const result = status.isClosed ? "🔒 FERMÉ" : "✅ OUVERT";
 
         message.channel.send(`${result} "${title}"\n` + `Raison: ${status.reason}`);
