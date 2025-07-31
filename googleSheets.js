@@ -132,7 +132,7 @@ const createHeaders = async () => {
 
     // Si le sheet "Opportunities" n'existe pas, le créer
     if (!opportunitiesSheet) {
-      console.log('📄 Création de la feuille "Opportunities"...');
+      console.log("📄 Création de la feuille Opportunities...");
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
         resource: {
@@ -147,9 +147,9 @@ const createHeaders = async () => {
           ]
         }
       });
-      console.log('✅ Feuille "Opportunities" créée');
+      console.log("✅ Feuille Opportunities créée");
     } else {
-      console.log('✅ Feuille "Opportunities" existe déjà');
+      console.log("✅ Feuille Opportunities existe déjà");
     }
 
     const headers = [
@@ -620,7 +620,7 @@ const ensureOpportunitiesSheetExists = async () => {
     );
 
     if (!opportunitiesSheet) {
-      console.log('📄 Création de la feuille "Opportunities"...');
+      console.log("📄 Création de la feuille Opportunities...");
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
         resource: {
@@ -635,10 +635,10 @@ const ensureOpportunitiesSheetExists = async () => {
           ]
         }
       });
-      console.log('✅ Feuille "Opportunities" créée');
+      console.log("✅ Feuille Opportunities créée");
     }
   } catch (error) {
-    console.error('❌ Erreur vérification feuille "Opportunities":', error);
+    console.error("❌ Erreur vérification feuille Opportunities:", error);
   }
 };
 
@@ -720,7 +720,7 @@ export const getSheetStats = async () => {
 
     // Messages d'aide spécifiques
     if (error.message.includes("Unable to parse range")) {
-      console.log('💡 La feuille "Opportunities" n\'existe probablement pas encore');
+      console.log("💡 La feuille Opportunities n'existe probablement pas encore");
     } else if (error.message.includes("permission")) {
       console.log("💡 Problème de permissions sur le Google Sheet");
     } else if (error.message.includes("not found")) {
