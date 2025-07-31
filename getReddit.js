@@ -1,3 +1,4 @@
+/* eslint quotes: "off" */
 import snoowrap from "snoowrap";
 
 // Fonction pour scorer la pertinence selon vos spécialités RÉELLES
