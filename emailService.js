@@ -5,61 +5,61 @@ import { getSheetStats, getPriorityOpportunities } from "./googleSheets.js";
 let transporter;
 
 const initEmailService = () => {
-  transporter = nodemailer.createTransport({
-    service: "gmail", // ou autre service
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_APP_PASSWORD // Mot de passe d'application Gmail
-    }
-  });
+    transporter = nodemailer.createTransport({
+        service: "gmail", // ou autre service
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_APP_PASSWORD // Mot de passe d'application Gmail
+        }
+    });
 
-  console.log("✅ Service email initialisé");
+    console.log("✅ Service email initialisé");
 };
 
 // Générer le rapport matinal HTML
 const generateMorningReport = async () => {
-  const stats = await getSheetStats();
-  const priorityOps = await getPriorityOpportunities();
+    const stats = await getSheetStats();
+    const priorityOps = await getPriorityOpportunities();
 
-  if (!stats) {
-    return "<p>❌ Erreur lors de la récupération des données</p>";
-  }
+    if (!stats) {
+        return "<p>❌ Erreur lors de la récupération des données</p>";
+    }
 
-  const categoriesHtml = Object.entries(stats.categories)
-    .map(([cat, count]) => `<li><strong>${cat}:</strong> ${count}</li>`)
-    .join("");
+    const categoriesHtml = Object.entries(stats.categories)
+        .map(([cat, count]) => `<li><strong>${cat}:</strong> ${count}</li>`)
+        .join("");
 
-  const priorityOpsHtml =
-    priorityOps.length > 0
-      ? priorityOps
-          .map(
-            op => `
+    const priorityOpsHtml =
+        priorityOps.length > 0
+            ? priorityOps
+                  .map(
+                      op => `
       <div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; background: ${
-        op.priorite === "CREATURE DESIGN" ? "#fff3cd" : "#f8f9fa"
+          op.priorite === "CREATURE DESIGN" ? "#fff3cd" : "#f8f9fa"
       };">
         <h4 style="margin: 0 0 10px 0; color: ${
-          op.priorite === "CREATURE DESIGN" ? "#856404" : "#495057"
+            op.priorite === "CREATURE DESIGN" ? "#856404" : "#495057"
         };">
           ${op.priorite === "CREATURE DESIGN" ? "🐲" : "⭐"} ${op.titre}
         </h4>
         <p style="margin: 5px 0;"><strong>📍 Subreddit:</strong> r/${op.subreddit}</p>
         <p style="margin: 5px 0;"><strong>💰 Budget:</strong> ${op.budget}</p>
         <p style="margin: 5px 0;"><strong>📊 Score:</strong> ${
-          op.score
+            op.score
         } | <strong>👥 Concurrence:</strong> ${op.concurrence}</p>
         <p style="margin: 5px 0;"><strong>🎨 Catégorie:</strong> ${op.categorie}</p>
         <a href="${
-          op.url
+            op.url
         }" style="display: inline-block; background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-top: 10px;">
           👀 Voir l'annonce
         </a>
       </div>
     `
-          )
-          .join("")
-      : '<p style="color: #6c757d; font-style: italic;">Aucune opportunité prioritaire en attente</p>';
+                  )
+                  .join("")
+            : '<p style="color: #6c757d; font-style: italic;">Aucune opportunité prioritaire en attente</p>';
 
-  return `
+    return `
     <!DOCTYPE html>
     <html>
     <head>
@@ -70,10 +70,10 @@ const generateMorningReport = async () => {
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
         <h1 style="margin: 0; font-size: 28px;">🎨 Rapport Quotidien Art Jobs</h1>
         <p style="margin: 10px 0 0 0; opacity: 0.9;">${new Date().toLocaleDateString("fr-FR", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric"
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
         })}</p>
       </div>
 
@@ -114,7 +114,7 @@ const generateMorningReport = async () => {
       <div style="margin-top: 30px; text-align: center; color: #6c757d; font-size: 14px;">
         <p>📈 Généré automatiquement par Art Jobs Bot</p>
         <p>🔗 <a href="https://docs.google.com/spreadsheets/d/${
-          process.env.GOOGLE_SPREADSHEET_ID
+            process.env.GOOGLE_SPREADSHEET_ID
         }" style="color: #007bff;">Voir le Google Sheets complet</a></p>
       </div>
     </body>
@@ -124,38 +124,38 @@ const generateMorningReport = async () => {
 
 // Envoyer le rapport matinal
 export const sendMorningReport = async () => {
-  try {
-    if (!transporter) {
-      initEmailService();
+    try {
+        if (!transporter) {
+            initEmailService();
+        }
+
+        const reportHtml = await generateMorningReport();
+        const stats = await getSheetStats();
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_RECIPIENT, // Votre email personnel
+            subject: `🎨 Art Jobs - ${stats?.nouveaux || 0} nouvelles opportunités`,
+            html: reportHtml
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log("✅ Rapport matinal envoyé:", info.messageId);
+        return true;
+    } catch (error) {
+        console.error("❌ Erreur envoi email:", error);
+        return false;
     }
-
-    const reportHtml = await generateMorningReport();
-    const stats = await getSheetStats();
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_RECIPIENT, // Votre email personnel
-      subject: `🎨 Art Jobs - ${stats?.nouveaux || 0} nouvelles opportunités`,
-      html: reportHtml
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Rapport matinal envoyé:", info.messageId);
-    return true;
-  } catch (error) {
-    console.error("❌ Erreur envoi email:", error);
-    return false;
-  }
 };
 
 // Envoyer une alerte pour opportunité urgente
 export const sendUrgentAlert = async opportunity => {
-  try {
-    if (!transporter) {
-      initEmailService();
-    }
+    try {
+        if (!transporter) {
+            initEmailService();
+        }
 
-    const alertHtml = `
+        const alertHtml = `
       <!DOCTYPE html>
       <html>
       <body style="font-family: Arial, sans-serif; padding: 20px;">
@@ -171,7 +171,7 @@ export const sendUrgentAlert = async opportunity => {
           <p><strong>📊 Score:</strong> ${opportunity.relevanceScore}</p>
           
           <a href="${
-            opportunity.url
+              opportunity.url
           }" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin-top: 15px;">
             💨 RÉPONDRE MAINTENANT
           </a>
@@ -180,22 +180,22 @@ export const sendUrgentAlert = async opportunity => {
       </html>
     `;
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_RECIPIENT,
-      subject: `🚨 URGENT: ${
-        opportunity.relevanceScore >= 18 ? "Creature Design" : "Opportunité prioritaire"
-      } - ${opportunity.hoursAgo}h`,
-      html: alertHtml
-    };
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_RECIPIENT,
+            subject: `🚨 URGENT: ${
+                opportunity.relevanceScore >= 18 ? "Creature Design" : "Opportunité prioritaire"
+            } - ${opportunity.hoursAgo}h`,
+            html: alertHtml
+        };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Alerte urgente envoyée:", info.messageId);
-    return true;
-  } catch (error) {
-    console.error("❌ Erreur envoi alerte:", error);
-    return false;
-  }
+        const info = await transporter.sendMail(mailOptions);
+        console.log("✅ Alerte urgente envoyée:", info.messageId);
+        return true;
+    } catch (error) {
+        console.error("❌ Erreur envoi alerte:", error);
+        return false;
+    }
 };
 
 export { initEmailService };
