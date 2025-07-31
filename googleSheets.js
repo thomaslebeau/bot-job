@@ -935,6 +935,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
         if (redditContent.success && redditContent.submission) {
           // Utiliser le contenu Reddit réel
           statusInfo = detectProjectStatus(redditContent.submission);
+          console.log("🔄 Résultat détection:", statusResult);
         } else {
           // Fallback: utiliser seulement le titre du Google Sheets
           console.log(
@@ -950,15 +951,23 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
           };
 
           statusInfo = detectProjectStatus(mockSubmission);
+          console.log("🔄 Résultat détection:", statusResult);
         }
+
+        console.log("📤 Appel updateOpportunityStatus avec:", {
+          url: opportunity.url,
+          status: statusInfo.isDeleted ? "FERME" : "NON-FERME",
+          reason: statusResult.reason
+        });
 
         // Mettre à jour si nécessaire
         if (statusInfo.isClosed || statusInfo.isDeleted) {
           const updateResult = await updateOpportunityStatus(
             opportunity.url,
-            statusInfo.isDeleted ? "FERMÉ" : "FERMÉ",
+            statusInfo.isDeleted ? "FERMÉ" : "NON-FERME",
             statusInfo.reason
           );
+          console.log("📥 Résultat update:", updateResult);
 
           if (updateResult.updated) {
             closedCount++;
@@ -979,6 +988,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
             statusInfo.reason,
             statusInfo.updateInfo
           );
+          console.log("📥 Résultat update:", updateResult);
 
           if (updateResult.updated) {
             inProgressCount++;
