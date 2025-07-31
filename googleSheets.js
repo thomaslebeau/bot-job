@@ -132,7 +132,7 @@ const createHeaders = async () => {
 
     // Si le sheet "Opportunities" n'existe pas, le créer
     if (!opportunitiesSheet) {
-      console.log("📄 Création de la feuille \"Opportunities\"...");
+      console.log('📄 Création de la feuille "Opportunities"...');
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
         resource: {
@@ -147,9 +147,9 @@ const createHeaders = async () => {
           ]
         }
       });
-      console.log("✅ Feuille \"Opportunities\" créée");
+      console.log('✅ Feuille "Opportunities" créée');
     } else {
-      console.log("✅ Feuille \"Opportunities\" existe déjà");
+      console.log('✅ Feuille "Opportunities" existe déjà');
     }
 
     const headers = [
@@ -180,7 +180,7 @@ const createHeaders = async () => {
       }
     });
 
-    console.log("✅ Headers Google Sheets créés dans la feuille \"Opportunities\"");
+    console.log('✅ Headers Google Sheets créés dans la feuille "Opportunities"');
   } catch (error) {
     console.error("❌ Erreur création headers:", error);
     throw error; // Propager l'erreur pour debugging
@@ -220,42 +220,42 @@ export const updateOpportunityStatus = async (url, status, reason, updateInfo = 
 
           if (status === "FERMÉ") {
             switch (reason) {
-            case "FLAIR_FOUND":
-              newStatus = "FERMÉ (Flair)";
-              note = "Fermé via flair Reddit";
-              break;
-            case "PATTERN_FOUND":
-              newStatus = "FERMÉ (Edit)";
-              note = "Fermé via edit du titre";
-              break;
-            case "KEYWORD_FOUND":
-              newStatus = "FERMÉ (Found)";
-              note = "Fermé - artiste trouvé";
-              break;
-            case "COMMENTS_FOUND":
-              newStatus = "FERMÉ (Commentaire)";
-              note = "Fermé via commentaire auteur";
-              break;
+              case "FLAIR_FOUND":
+                newStatus = "FERMÉ (Flair)";
+                note = "Fermé via flair Reddit";
+                break;
+              case "PATTERN_FOUND":
+                newStatus = "FERMÉ (Edit)";
+                note = "Fermé via edit du titre";
+                break;
+              case "KEYWORD_FOUND":
+                newStatus = "FERMÉ (Found)";
+                note = "Fermé - artiste trouvé";
+                break;
+              case "COMMENTS_FOUND":
+                newStatus = "FERMÉ (Commentaire)";
+                note = "Fermé via commentaire auteur";
+                break;
               // 🆕 GESTION SUPPRESSION
-            case "USER_DELETED":
-              newStatus = "SUPPRIMÉ (User)";
-              note = "Post supprimé par l'utilisateur";
-              break;
-            case "MOD_REMOVED":
-              newStatus = "SUPPRIMÉ (Mods)";
-              note = "Post supprimé par les modérateurs";
-              break;
+              case "USER_DELETED":
+                newStatus = "SUPPRIMÉ (User)";
+                note = "Post supprimé par l'utilisateur";
+                break;
+              case "MOD_REMOVED":
+                newStatus = "SUPPRIMÉ (Mods)";
+                note = "Post supprimé par les modérateurs";
+                break;
             }
           } else if (status === "EN_COURS") {
             switch (reason) {
-            case "UPDATE_PATTERN":
-              newStatus = "EN_COURS (Update)";
-              note = "Update détecté - révision en cours";
-              break;
-            case "UPDATE_KEYWORD":
-              newStatus = "EN_COURS (Révision)";
-              note = "Révision des candidatures en cours";
-              break;
+              case "UPDATE_PATTERN":
+                newStatus = "EN_COURS (Update)";
+                note = "Update détecté - révision en cours";
+                break;
+              case "UPDATE_KEYWORD":
+                newStatus = "EN_COURS (Révision)";
+                note = "Révision des candidatures en cours";
+                break;
             }
 
             // 🆕 AJOUTER LES INFOS D'UPDATE
@@ -620,7 +620,7 @@ const ensureOpportunitiesSheetExists = async () => {
     );
 
     if (!opportunitiesSheet) {
-      console.log("📄 Création de la feuille \"Opportunities\"...");
+      console.log('📄 Création de la feuille "Opportunities"...');
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
         resource: {
@@ -635,10 +635,10 @@ const ensureOpportunitiesSheetExists = async () => {
           ]
         }
       });
-      console.log("✅ Feuille \"Opportunities\" créée");
+      console.log('✅ Feuille "Opportunities" créée');
     }
   } catch (error) {
-    console.error("❌ Erreur vérification feuille \"Opportunities\":", error);
+    console.error('❌ Erreur vérification feuille "Opportunities":', error);
   }
 };
 
@@ -720,7 +720,7 @@ export const getSheetStats = async () => {
 
     // Messages d'aide spécifiques
     if (error.message.includes("Unable to parse range")) {
-      console.log("💡 La feuille \"Opportunities\" n'existe probablement pas encore");
+      console.log('💡 La feuille "Opportunities" n\'existe probablement pas encore');
     } else if (error.message.includes("permission")) {
       console.log("💡 Problème de permissions sur le Google Sheet");
     } else if (error.message.includes("not found")) {
@@ -928,7 +928,9 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
         console.log(`🔍 Vérification: ${opportunity.title.substring(0, 50)}...`);
 
         // Récupérer le contenu Reddit en temps réel
-        const redditContent = await fetchRedditPostContent(opportunity.url);
+        const redditContent = await fetchRedditPostContent(
+          "https://www.reddit.com/r/HungryArtists/comments/1m5whja/hiring_fantasy_character_illustration_commission/"
+        );
 
         let statusInfo;
 

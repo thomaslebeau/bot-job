@@ -268,11 +268,15 @@ const adjustScoreForTimingAndCompetition = (
   return adjustedScore;
 };
 
-const detectProjectStatus = submission => {
+const detectProjectStatus = async submission => {
   // Les propriétés snoowrap sont déjà des valeurs, pas des Promises
-  const title = (submission.title || "").toString().toLowerCase();
-  const description = (submission.selftext || "").toString().toLowerCase();
-  const flair = (submission.link_flair_text || "").toString().toLowerCase();
+  const titleRaw = await submission.title;
+  const selftextRaw = await submission.selftext;
+  const flairRaw = await submission.link_flair_text;
+
+  const title = (titleRaw || "").toString().toLowerCase();
+  const description = (selftextRaw || "").toString().toLowerCase();
+  const flair = (flairRaw || "").toString().toLowerCase();
   const fullText = title + " " + description + " " + flair;
 
   console.log(`🔍 Analyse statut pour: "${title.substring(0, 50)}..."`);
