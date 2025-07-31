@@ -46,7 +46,7 @@ export default defineConfig([
       "no-unreachable": "error",
       "no-duplicate-imports": "error",
       "no-console": "off",
-      indent: ["warn", 4],
+      indent: ["warn", 2],
       quotes: ["warn", "double"],
       semi: ["warn", "always"],
       "comma-dangle": ["warn", "never"],
