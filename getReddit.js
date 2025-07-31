@@ -775,7 +775,7 @@ export const getReddit = async () => {
       {
         name: "HungryArtists",
         params: {
-          query: 'flair:"Hiring" -flair:"For Hire"',
+          query: `flair:"Hiring" -flair:"For Hire"`,
           sort: "new",
           restrict_sr: "on",
           limit: 10
@@ -784,7 +784,7 @@ export const getReddit = async () => {
       {
         name: "artcommissions",
         params: {
-          query: 'flair:"[Patron]" OR (hiring NOT "for hire")',
+          query: `flair:"[Patron]" OR (hiring NOT "for hire")`,
           sort: "new",
           restrict_sr: "on",
           limit: 10
@@ -793,7 +793,7 @@ export const getReddit = async () => {
       {
         name: "starvingartists",
         params: {
-          query: '(Request OR Hiring OR Commission) -"For Hire" -"for hire"',
+          query: `(Request OR Hiring OR Commission) -"For Hire" -"for hire"`,
           sort: "new",
           restrict_sr: "on",
           limit: 8
@@ -802,7 +802,7 @@ export const getReddit = async () => {
       {
         name: "hireanartist",
         params: {
-          query: 'flair:"[Hiring]-project" OR flair:"[Hiring]-one-off"',
+          query: `flair:"[Hiring]-project" OR flair:"[Hiring]-one-off"`,
           sort: "new",
           restrict_sr: "on",
           limit: 10
