@@ -935,7 +935,7 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
         if (redditContent.success && redditContent.submission) {
           // Utiliser le contenu Reddit réel
           statusInfo = detectProjectStatus(redditContent.submission);
-          console.log("🔄 Résultat détection:", statusResult);
+          console.log("🔄 Résultat détection:", statusInfo);
         } else {
           // Fallback: utiliser seulement le titre du Google Sheets
           console.log(
@@ -951,13 +951,13 @@ export const autoCloseFoundOpportunitiesEnhanced = async () => {
           };
 
           statusInfo = detectProjectStatus(mockSubmission);
-          console.log("🔄 Résultat détection:", statusResult);
+          console.log("🔄 Résultat détection:", statusInfo);
         }
 
         console.log("📤 Appel updateOpportunityStatus avec:", {
           url: opportunity.url,
           status: statusInfo.isDeleted ? "FERME" : "NON-FERME",
-          reason: statusResult.reason
+          reason: statusInfo.reason
         });
 
         // Mettre à jour si nécessaire
