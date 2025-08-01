@@ -1,6 +1,17 @@
 /* eslint quotes: "off" */
 import snoowrap from "snoowrap";
 
+const negationWords = ["not", "haven't", "hasn't", "didn't", "never", "no"];
+
+function hasPositiveKeyword(text, keyword) {
+  const index = text.indexOf(keyword);
+  if (index === -1) return false;
+
+  // Vérifier les mots avant le keyword
+  const precedingText = text.substring(Math.max(0, index - 30), index);
+  return !negationWords.some(neg => precedingText.includes(neg));
+}
+
 // Fonction pour scorer la pertinence selon vos spécialités RÉELLES
 const scoreJobRelevance = (title, description = "") => {
   const text = (title + " " + description).toLowerCase();
@@ -310,6 +321,7 @@ const detectProjectStatus = async submission => {
     "found",
     "artist found",
     "position filled",
+    "no longer accepting",
     "filled",
     "closed",
     "complete",
@@ -333,6 +345,8 @@ const detectProjectStatus = async submission => {
     "finished",
     "going with someone",
     "chosen an artist",
+    "selected an artist",
+    "hired an artist",
     "selected an artist"
   ];
 
@@ -386,7 +400,10 @@ const detectProjectStatus = async submission => {
     /thank.*you.*all.*found/i,
     /going with.*artist/i,
     /chosen.*artist/i,
-    /selected.*artist/i
+    /selected.*artist/i,
+    /artist (found|selected)/i,
+    /(position|slot).*(filled|taken)/i,
+    /(closed).*applications/i
   ];
 
   // 🆕 PATTERNS POUR UPDATE/EN_COURS
@@ -412,18 +429,24 @@ const detectProjectStatus = async submission => {
   ];
 
   // Vérifier les différents états
-  const hasFoundKeyword = foundKeywords.some(keyword => fullText.includes(keyword));
-  const hasFoundPattern = foundPatterns.some(pattern => pattern.test(fullText));
-  const hasFoundFlair =
-    flair.includes("found") ||
-    flair.includes("filled") ||
-    flair.includes("closed") ||
-    flair.includes("hired") ||
-    flair.includes("complete");
+  const hasFoundKeyword = foundKeywords.some(keyword => hasPositiveKeyword(fullText, keyword));
+  const hasFoundPattern = foundPatterns.some(
+    pattern => pattern.test(fullText) && hasPositiveKeyword(fullText, pattern.source)
+  );
+
+  const isTrulyClosedByFlair = ["hired", "closed", "filled", "completed", "finished"].some(term =>
+    flair.includes(term)
+  );
+
+  const isAmbiguousFlair = ["found", "position"].some(term => flair.includes(term));
+
+  const hasFoundFlair = isTrulyClosedByFlair || (isAmbiguousFlair && hasFoundKeyword);
 
   // 🆕 VÉRIFIER LES UPDATE
-  const hasUpdateKeyword = updateKeywords.some(keyword => fullText.includes(keyword));
-  const hasUpdatePattern = updatePatterns.some(pattern => pattern.test(fullText));
+  const hasUpdateKeyword = updateKeywords.some(keyword => hasPositiveKeyword(fullText, keyword));
+  const hasUpdatePattern = updatePatterns.some(
+    pattern => pattern.test(fullText) && hasPositiveKeyword(fullText, pattern.source)
+  );
 
   // Vérifier si c'est un update mais pas encore fermé
   const isInProgress =
@@ -455,7 +478,12 @@ const detectProjectStatus = async submission => {
     reason = hasUpdatePattern ? "UPDATE_PATTERN" : "UPDATE_KEYWORD";
   }
 
-  console.log(`📊 Résultat: ${status} (${reason})`);
+  console.log(`🔍 Détection statut:
+  Title: ${title.substring(0, 30)}...
+  Flair: ${flair}
+  Found keywords: ${foundKeywords.filter(k => fullText.includes(k)).join(", ") || "Aucun"}
+  Update keywords: ${updateKeywords.filter(k => fullText.includes(k)).join(", ") || "Aucun"}
+  Final status: ${status}`);
 
   return {
     isClosed: isProjectClosed,
