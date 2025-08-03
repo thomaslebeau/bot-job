@@ -569,7 +569,7 @@ client.on("ready", async () => {
   let redditInstanceForAutoApply = null;
 
   // Surveillance Reddit - toutes les heures
-  cron.schedule("*/2 * * * *", async () => {
+  cron.schedule("0 */1 * * *", async () => {
     console.log("🔍 Recherche d'offres Reddit en cours...");
 
     try {
