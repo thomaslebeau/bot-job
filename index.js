@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import { Client, GatewayIntentBits, EmbedBuilder, ChannelType } from "discord.js";
 import cron from "node-cron";
-import { getReddit, getRedditForced, detectProjectStatus } from "./getReddit.js";
+import { getReddit, getRedditForced, detectProjectStatus, autoApplyToJob } from "./getReddit.js";
 import { generateResponse } from "./responseTemplates.js";
 import {
   addOpportunityToSheet,
@@ -19,6 +19,7 @@ import {
   resetGroqStats,
   getDailyStatsReport
 } from "./aiAnalyzer.js";
+import Snoowrap from "snoowrap";
 
 dotenv.config();
 
@@ -265,7 +266,7 @@ const setupChannels = async guild => {
 };
 
 // Fonction pour traiter et poster les nouvelles opportunités
-const processOpportunities = async (newJobs, guild) => {
+const processOpportunities = async (newJobs, guild, redditInstance = null) => {
   if (!newJobs || newJobs.length === 0) return 0;
 
   const redditChannel = guild.channels.cache.get(channelIds.reddit);
@@ -448,7 +449,89 @@ const processOpportunities = async (newJobs, guild) => {
       const sheetResult = await addOpportunityToSheet(opportunityData);
 
       if (sheetResult === "added") {
-        // ... votre code existant pour traitement normal ...
+        if (job.relevanceScore >= 40 && job.canComment && redditInstance) {
+          console.log(
+            `🎯 [AUTO-APPLY] Score élevé détecté (${job.relevanceScore}) - Auto-candidature activée`
+          );
+
+          try {
+            const autoApplyResult = await autoApplyToJob(redditInstance, {
+              title: job.title,
+              url: job.url,
+              subreddit: subreddit,
+              relevanceScore: job.relevanceScore,
+              description: job.description || ""
+            });
+
+            if (autoApplyResult.success) {
+              console.log(`🚀 [AUTO-APPLY] SUCCÈS: Candidature automatique envoyée !`);
+
+              // 🆕 POSTER AVEC INDICATEUR AUTO-CANDIDATURE
+              await redditChannel.send({
+                embeds: [
+                  redditCard(
+                    job.title,
+                    job.url,
+                    subreddit,
+                    job.relevanceScore,
+                    job.description,
+                    job.numComments,
+                    job.hoursAgo
+                  )
+                    .setColor(0x00ff00) // Vert pour auto-candidature
+                    .setFooter({
+                      text: `🤖 CANDIDATURE AUTOMATIQUE ENVOYÉE ! • r/${subreddit} • Score: ${job.relevanceScore}`
+                    })
+                ]
+              });
+
+              await redditChannel.send(
+                `🚀 **CANDIDATURE AUTOMATIQUE RÉUSSIE !**\n` +
+                  `📊 **Score:** ${job.relevanceScore}/100 (seuil: 40)\n` +
+                  `✅ **Statut:** Message envoyé avec succès`
+              );
+            } else {
+              console.log(`⚠️ [AUTO-APPLY] ÉCHEC: ${autoApplyResult.error}`);
+
+              // Poster normalement mais avec indication d'échec
+              await redditChannel.send({
+                embeds: [
+                  redditCard(
+                    job.title,
+                    job.url,
+                    subreddit,
+                    job.relevanceScore,
+                    job.description,
+                    job.numComments,
+                    job.hoursAgo
+                  )
+                ]
+              });
+
+              await redditChannel.send(
+                `⚠️ **AUTO-CANDIDATURE ÉCHOUÉE** (Score: ${job.relevanceScore})\n` +
+                  `❌ **Erreur:** ${autoApplyResult.error}`
+              );
+            }
+          } catch (error) {
+            console.error(`❌ [AUTO-APPLY] Exception:`, error);
+          }
+        } else {
+          // TRAITEMENT NORMAL (pas d'auto-candidature)
+          await redditChannel.send({
+            embeds: [
+              redditCard(
+                job.title,
+                job.url,
+                subreddit,
+                job.relevanceScore,
+                job.description,
+                job.numComments,
+                job.hoursAgo
+              )
+            ]
+          });
+        }
         processedCount++;
       }
     } catch (error) {
@@ -483,12 +566,28 @@ client.on("ready", async () => {
   // Initialiser Google Sheets
   console.log("📊 Initialisation Google Sheets...");
   await initSpreadsheet();
+  let redditInstanceForAutoApply = null;
 
   // Surveillance Reddit - toutes les heures
   cron.schedule("0 */1 * * *", async () => {
     console.log("🔍 Recherche d'offres Reddit en cours...");
 
     try {
+      if (!redditInstanceForAutoApply && process.env.username) {
+        try {
+          redditInstanceForAutoApply = new Snoowrap({
+            userAgent: "ArtJobBot/1.0.0 by YourUsername",
+            clientId: process.env.clientId,
+            clientSecret: process.env.clientSecret,
+            username: process.env.username,
+            password: process.env.password
+          });
+          console.log("🔧 [AUTO-APPLY] Instance Reddit initialisée");
+        } catch (redditError) {
+          console.error("❌ [AUTO-APPLY] Erreur init Reddit:", redditError);
+          redditInstanceForAutoApply = null;
+        }
+      }
       const allJobs = await getReddit();
 
       if (!allJobs || allJobs === "error" || allJobs.length === 0) {
@@ -507,7 +606,11 @@ client.on("ready", async () => {
         let totalProcessed = 0;
 
         for (const guild of client.guilds.cache.values()) {
-          const processed = await processOpportunities(newOpportunities, guild);
+          const processed = await processOpportunities(
+            newOpportunities,
+            guild,
+            redditInstanceForAutoApply
+          );
           totalProcessed += processed;
 
           const statusChannel = guild.channels.cache.get(channelIds.status);

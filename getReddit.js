@@ -776,7 +776,7 @@ const getCommentStatus = (submission, ageInMonths) => {
   return "OUVERT";
 };
 
-const generateAutoResponse = (jobTitle, subreddit) => {
+const generateAutoResponse = () => {
   return `Hello!
 
     I'm a freelance illustrator/concept artist with a stylized and semi-realistic style. I've worked extensively on TCG, TTRPG companies and private commissions.
@@ -958,7 +958,7 @@ export const getReddit = async () => {
               commentInfo.canComment // 🆕 NOUVEAU PARAMÈTRE
             );
 
-            const job = {
+            return {
               title: submission.title,
               url: `https://www.reddit.com${submission.permalink}`,
               subreddit: config.name,
@@ -979,13 +979,6 @@ export const getReddit = async () => {
               isArchived: commentInfo.archived,
               isRemoved: commentInfo.removed
             };
-
-            if (finalScore > 40 && commentInfo.canComment) {
-              console.log(`🎯 Score élevé (${finalScore}) - Auto-candidature activée`);
-              await autoApplyToJob(r, job);
-            }
-
-            return job;
           });
 
         console.log(`✅ r/${config.name}: ${jobs.length} offres trouvées`);
@@ -1160,4 +1153,10 @@ export const getRedditForced = async () => {
 };
 
 // 🆕 EXPORT DES NOUVELLES FONCTIONS POUR DEBUGGING
-export { isForHirePost, isValidHiringPost, checkCommentAvailability, detectProjectStatus };
+export {
+  isForHirePost,
+  isValidHiringPost,
+  checkCommentAvailability,
+  detectProjectStatus,
+  autoApplyToJob
+};
