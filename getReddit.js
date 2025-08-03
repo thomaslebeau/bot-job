@@ -776,6 +776,44 @@ const getCommentStatus = (submission, ageInMonths) => {
   return "OUVERT";
 };
 
+const generateAutoResponse = (jobTitle, subreddit) => {
+  return `Hello!
+
+    I'm a freelance illustrator/concept artist with a stylized and semi-realistic style. I've worked extensively on TCG, TTRPG companies and private commissions.
+
+    I'd love to discuss your vision by DM and see if we're a good fit. Feel free to check my portfolio https://www.artstation.com/courgette-tl
+
+    Looking forward to hearing from you!
+
+    Best regards`;
+};
+
+const autoApplyToJob = async (r, job) => {
+  try {
+    console.log(`🤖 Auto-candidature pour: "${job.title.substring(0, 50)}..."`);
+
+    // Extraire l'ID du post depuis l'URL
+    const postId = job.url.split("/comments/")[1].split("/")[0];
+
+    // Générer le message
+    const message = generateAutoResponse(job.title, job.subreddit);
+
+    // Poster le commentaire
+    const submission = await r.getSubmission(postId);
+    await submission.reply(message);
+
+    console.log(`✅ Candidature automatique envoyée pour: ${job.title.substring(0, 50)}...`);
+
+    // Délai de sécurité pour éviter le spam
+    await new Promise(resolve => setTimeout(resolve, 5000)); // 5 secondes
+
+    return true;
+  } catch (error) {
+    console.error(`❌ Erreur auto-candidature pour "${job.title}":`, error.message);
+    return false;
+  }
+};
+
 export const getReddit = async () => {
   try {
     // Vérifier que les variables d'environnement sont présentes
@@ -902,7 +940,7 @@ export const getReddit = async () => {
 
             return true;
           })
-          .map(submission => {
+          .map(async submission => {
             const description = submission.selftext || "";
             const baseRelevanceScore = scoreJobRelevance(submission.title, description);
             const hoursAgo = Math.floor(
@@ -920,7 +958,7 @@ export const getReddit = async () => {
               commentInfo.canComment // 🆕 NOUVEAU PARAMÈTRE
             );
 
-            return {
+            const job = {
               title: submission.title,
               url: `https://www.reddit.com${submission.permalink}`,
               subreddit: config.name,
@@ -941,6 +979,13 @@ export const getReddit = async () => {
               isArchived: commentInfo.archived,
               isRemoved: commentInfo.removed
             };
+
+            if (finalScore > 40 && commentInfo.canComment) {
+              console.log(`🎯 Score élevé (${finalScore}) - Auto-candidature activée`);
+              await autoApplyToJob(r, job);
+            }
+
+            return job;
           });
 
         console.log(`✅ r/${config.name}: ${jobs.length} offres trouvées`);
