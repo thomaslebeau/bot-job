@@ -1006,8 +1006,8 @@ export const getReddit = async () => {
     const uniqueJobs = [];
     const seenTitles = new Set();
 
-    for (const job of sortedJobs) {
-      console.log("job =>", job);
+    for (const jobPromise of sortedJobs) {
+      const job = await jobPromise;
       const normalizedTitle = job.title.toLowerCase().trim();
       if (!seenTitles.has(normalizedTitle)) {
         seenTitles.add(normalizedTitle);
