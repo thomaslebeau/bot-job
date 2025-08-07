@@ -779,13 +779,13 @@ const getCommentStatus = (submission, ageInMonths) => {
 const generateAutoResponse = () => {
   return `Hello!
 
-    I'm a freelance illustrator/concept artist with a stylized and semi-realistic style. I've worked extensively on TCG, TTRPG companies and private commissions.
+  I'm a freelance illustrator/concept artist with a stylized and semi-realistic style. I've worked extensively on TCG, TTRPG companies and private commissions.
 
-    I'd love to discuss your vision by DM and see if we're a good fit. Feel free to check my portfolio https://www.artstation.com/courgette-tl
+  I'd love to discuss your vision by DM and see if we're a good fit. Feel free to check my portfolio https://www.artstation.com/courgette-tl
 
-    Looking forward to hearing from you!
+  Looking forward to hearing from you!
 
-    Best regards`;
+  Best regards`;
 };
 
 const autoApplyToJob = async (r, job) => {
