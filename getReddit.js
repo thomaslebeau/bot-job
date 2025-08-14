@@ -19,174 +19,127 @@ const scoreJobRelevance = (title, description = "") => {
 
   // VOS SPÉCIALITÉS PRIORITAIRES
   const highPriorityKeywords = {
-    // CREATURE DESIGN (votre point fort !)
-    "creature design": 20,
-    "creature concept": 18,
-    "monster design": 18,
-    "beast design": 16,
-    "creature art": 15,
-    "creature concept art": 18,
-    "monster concept": 16,
-    "creature illustration": 15,
-    "mythical creature": 14,
-    "fantasy creature": 14,
-    "dragon design": 16,
-    "demon design": 14,
-    "alien design": 14,
-    bestiary: 14,
-    "creature sheet": 12,
+    // CHARACTER DESIGN (votre cœur de métier)
+    "character design": 25,
+    "character concept": 22,
+    "character art": 20,
+    "character sheet": 18,
+    "reference sheet": 16,
+    "character portrait": 16,
+    "original character": 14,
+    "character illustration": 15,
 
-    // Character Design (votre autre force)
-    "character design": 15,
-    "character concept": 12,
-    "character art": 10,
-    "character sheet": 10,
-    "original character": 8,
-    "oc commission": 8,
+    // D&D / FANTASY RPG (votre marché principal)
+    dnd: 20,
+    "d&d": 20,
+    "dungeons and dragons": 20,
+    "fantasy character": 18,
+    "rpg character": 16,
+    pathfinder: 15,
+    ttrpg: 15,
+    fantasy: 12,
+    medieval: 10,
 
-    // D&D / RPG (très compatible creature design)
-    dnd: 15,
-    "d&d": 15,
-    "dungeons and dragons": 15,
-    pathfinder: 12,
-    rpg: 8,
-    tabletop: 8,
-    fantasy: 8,
-    "monster manual": 15,
-    homebrew: 10,
+    // PROJETS MULTIPLES (meilleurs budgets)
+    "multiple characters": 15,
+    "party commission": 14,
+    "group commission": 12,
+    "several characters": 12,
+    "character roster": 10,
 
-    // Classes D&D qui ont souvent des familiers/creatures
+    // VOTRE STYLE SEMI-RÉALISTE
+    "semi realistic": 15,
+    "semi-realistic": 15,
+    "semi realism": 15,
+    stylized: 12,
+    painterly: 10,
+    "concept art": 10,
+
+    // CONTEXTES FANTASY PREMIUM
+    "dark fantasy": 12,
+    "high fantasy": 10,
+    "epic fantasy": 10,
+    "sword and sorcery": 8,
+    gothic: 8,
+
+    // CLASSES/RACES D&D POPULAIRES
+    paladin: 8,
+    wizard: 8,
+    rogue: 8,
+    barbarian: 8,
+    warlock: 8,
     druid: 8,
     ranger: 8,
-    warlock: 8,
-    summoner: 10,
-    "beast master": 12,
+    elf: 6,
+    dwarf: 6,
+    tiefling: 8,
+    dragonborn: 8,
 
-    // Jeux avec beaucoup de creatures
-    "board game": 12,
-    "card game": 10,
-    tcg: 8,
-    "trading card": 8,
-    "game art": 10,
-    kickstarter: 6,
-
-    // VOTRE STYLE : Semi-réaliste et stylisé
-    "semi realistic": 12,
-    "semi-realistic": 12,
-    stylized: 12,
-    "semi realism": 10,
-    painterly: 8,
-    "concept art": 10,
-    "digital painting": 8,
-    illustration: 6,
-    "fantasy art": 8,
-    "dark fantasy": 8,
-    gothic: 6,
-
-    // Types de créatures populaires
-    dragon: 10,
-    demon: 8,
-    devil: 8,
-    angel: 6,
-    undead: 8,
-    zombie: 6,
-    vampire: 6,
-    werewolf: 8,
-    griffin: 8,
-    phoenix: 8,
-    hydra: 8,
-    chimera: 10,
-    sphinx: 8,
-    minotaur: 8,
-    centaur: 8,
-    elemental: 8,
-    familiar: 10,
-    companion: 8,
-    mount: 8,
-    pet: 6
+    // PROJETS LONG TERME (meilleurs clients)
+    "long term": 12,
+    ongoing: 10,
+    series: 8,
+    campaign: 8,
+    "regular work": 10
   };
 
   // Styles/types à éviter ou moins compatibles avec vos compétences
   const avoidKeywords = {
-    // Styles que vous ne faites PAS
-    "anime style": -8,
-    "manga style": -8,
-    anime: -6,
-    manga: -6,
-    cartoon: -4,
-    chibi: -8,
-    kawaii: -8,
-    "cel shading": -6,
+    anime: -15,
+    manga: -15,
+    chibi: -20,
+    kawaii: -15,
+    cartoon: -8,
+    "cel shading": -10,
 
-    // Styles trop éloignés
-    photorealistic: -10,
-    hyperrealistic: -12,
-    "photo manipulation": -10,
-    "photo editing": -10,
-    "realistic portrait": -8,
-    "oil painting": -6,
-    watercolor: -4,
-    "pixel art": -6,
-    "vector art": -8,
-    minimalist: -6,
+    // Projets non-character
+    landscape: -12,
+    environment: -10,
+    logo: -20,
+    website: -15,
+    "ui/ux": -20,
+    "graphic design": -15,
+    banner: -8,
+    poster: -6,
 
-    // Types de travaux non pertinents
-    logo: -12,
-    "business card": -10,
-    website: -10,
-    "ui/ux": -12,
-    "graphic design": -8,
-    banner: -6,
-    poster: -4,
-    architecture: -10,
-    "landscape only": -6,
-    "environment only": -5,
-    "background only": -4,
-    "real estate": -12,
-    wedding: -10,
-    "family portrait": -8,
-    "pet portrait": -4, // sauf si c'est fantasy/creature
+    // Budgets dérisoires (élimination immédiate)
+    $10: -25,
+    $15: -25,
+    $20: -20,
+    $25: -18,
+    $30: -15,
+    $40: -12,
+    $50: -10,
+    "very low budget": -15,
+    "student budget": -10,
+    "tight budget": -8,
+    "limited budget": -6,
 
-    // Budgets dérisoires
-    $5: -20,
-    $10: -15,
-    $15: -12,
-    $20: -8,
-    "very low budget": -8,
-    "student budget": -6,
-    cheap: -8,
-    free: -15
+    // Styles réalistes (trop complexes pour vos tarifs)
+    photorealistic: -15,
+    hyperrealistic: -18,
+    "realistic portrait": -12,
+
+    // Autres incompatibilités
+    furry: -8,
+    nsfw: -10,
+    "adult content": -12
   };
 
   // Bonus spéciaux pour creature design
   const creatureBonusKeywords = {
-    "detailed anatomy": 5,
-    "concept sheet": 4,
-    turnaround: 5,
-    "multiple views": 4,
-    "reference sheet": 3,
-    orthographic: 4,
-    "front and back": 3,
-    "side view": 2,
-    "full body": 3,
-    "anatomy study": 4,
-    "creature ecology": 6,
-    lore: 3,
-    worldbuilding: 4,
-    "original creation": 4,
-    "unique design": 3,
-    "creative freedom": 5,
-    "artistic interpretation": 4,
-    "long term": 6,
-    "ongoing project": 5,
-    series: 4,
-    "multiple creatures": 6,
-    "bestiary project": 8,
-    "creature compendium": 8,
+    "generous budget": 8,
+    "good budget": 6,
+    "professional rate": 8,
+    "fair compensation": 6,
+    "competitive rate": 5,
+    "quality work": 4,
+    "experienced artist": 5,
+    "portfolio required": 4,
+    "professional artist": 6,
     "commercial use": 5,
-    "game development": 6,
-    "indie game": 4,
-    "concept development": 5
+    "copyright transfer": 4,
+    "exclusive rights": 6
   };
 
   // Calculer le score
@@ -212,30 +165,44 @@ const scoreJobRelevance = (title, description = "") => {
   const budgetMatch = text.match(/\$(\d+)/);
   if (budgetMatch) {
     const budget = parseInt(budgetMatch[1]);
-    if (budget >= 1000)
-      score += 12; // Très gros projet
-    else if (budget >= 500)
-      score += 8; // Projet sérieux
-    else if (budget >= 200)
-      score += 5; // Correct
-    else if (budget >= 100)
-      score += 2; // Minimum
-    else if (budget >= 50) score += 0; // Limite basse
-    // En dessous de 50$ = pas de bonus, voir malus plus haut
+    if (budget < 150) {
+      score -= 20; // ÉLIMINATION : en dessous de votre minimum
+    } else if (budget >= 150 && budget < 200) {
+      score += 5; // Minimum acceptable
+    } else if (budget >= 200 && budget < 300) {
+      score += 8; // Bon budget
+    } else if (budget >= 300 && budget < 500) {
+      score += 12; // Très bon budget
+    } else if (budget >= 500) {
+      score += 15; // Budget premium
+    }
+  }
+
+  if (text.includes("character") || text.includes("portrait")) {
+    // Bonus supplémentaires si c'est vraiment du character design
+    if (text.includes("backstory") || text.includes("personality")) score += 3;
+    if (text.includes("multiple views") || text.includes("turnaround")) score += 4;
+    if (text.includes("armor") || text.includes("weapon")) score += 3;
+    if (text.includes("class") || text.includes("race")) score += 3;
+    if (text.includes("level") || text.includes("stats")) score += 2;
   }
 
   // Malus pour urgence (creature design = temps nécessaire)
   if (text.includes("asap") || text.includes("urgent") || text.includes("rush")) {
-    score -= 3;
+    score -= 5;
+  }
+  if (text.includes("24 hours") || text.includes("tomorrow")) {
+    score -= 8;
   }
 
   // Bonus pour timeline réaliste
   if (
-    text.includes("flexible timeline") ||
+    text.includes("flexible deadline") ||
     text.includes("no rush") ||
-    text.includes("take your time")
+    text.includes("take your time") ||
+    text.includes("when ready")
   ) {
-    score += 3;
+    score += 4;
   }
 
   return score;
@@ -777,15 +744,12 @@ const getCommentStatus = (submission, ageInMonths) => {
 };
 
 const generateAutoResponse = () => {
-  return `Hello!
+  return `Hi there!
 
-  I'm a freelance illustrator/concept artist with a stylized and semi-realistic style. I've worked extensively on TCG, TTRPG companies and private commissions.
+Freelance character artist here with a focus on fantasy and TTRPG artwork. I specialize in semi-realistic character design that captures both visual appeal and personality.
 
-  I'd love to discuss your vision by DM and see if we're a good fit. Feel free to check my portfolio https://www.artstation.com/courgette-tl
-
-  Looking forward to hearing from you!
-
-  Best regards`;
+I'm passionate about bringing unique characters to life. My Portfolio: https://www.artstation.com/courgette-tl
+Happy to discuss your project via DM!`;
 };
 
 const autoApplyToJob = async (r, job) => {
